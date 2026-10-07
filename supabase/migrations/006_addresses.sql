@@ -1,0 +1,20 @@
+﻿-- 006_addresses.sql
+CREATE TABLE IF NOT EXISTS public.addresses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    cep VARCHAR(20) NOT NULL,
+    street VARCHAR(255) NOT NULL,
+    number VARCHAR(50) NOT NULL,
+    complement VARCHAR(255),
+    neighborhood VARCHAR(255) NOT NULL,
+    city VARCHAR(255) NOT NULL,
+    state VARCHAR(10) NOT NULL,
+    reference TEXT,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_addresses_user ON public.addresses(user_id);
