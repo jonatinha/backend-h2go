@@ -38,6 +38,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     origin: env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Accept'],
+    exposedHeaders: ['X-Request-Id'],
+    preflight: true,
+    strictPreflight: false,
   });
 
   await app.register(helmet, {
