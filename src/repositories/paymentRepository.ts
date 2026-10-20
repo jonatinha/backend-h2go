@@ -1,10 +1,79 @@
-﻿import { Payment, PaymentStatus, PaymentMethod } from '../types/index.js';
+import { Payment, PaymentStatus, PaymentMethod } from '../types/index.js';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 
 let memoryPayments: Payment[] = [];
 let memoryPaymentEvents: any[] = [];
 
 export class PaymentRepository {
+  async findAll(options?: {
+    page?: number;
+    limit?: number;
+    status?: PaymentStatus;
+    from?: string;
+    to?: string;
+    paidFrom?: string;
+    paidTo?: string;
+  }): Promise<{ payments: Payment[]; total: number }> {
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.min(500, Math.max(1, options?.limit || 100));
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    if (isSupabaseConfigured()) {
+      try {
+        let query = supabaseAdmin
+          .from('payments')
+          .select('*', { count: 'exact' });
+
+        if (options?.status) query = query.eq('status', options.status);
+        if (options?.from) query = query.gte('created_at', options.from);
+        if (options?.to) query = query.lt('created_at', options.to);
+        if (options?.paidFrom) query = query.gte('paid_at', options.paidFrom);
+        if (options?.paidTo) query = query.lt('paid_at', options.paidTo);
+
+        const { data, count, error } = await query
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error) throw error;
+
+        return {
+          payments: (data || []).map((p: any) => ({
+            ...p,
+            amount: Number(p.amount),
+          })),
+          total: count ?? (data || []).length,
+        };
+      } catch (err) {
+        console.warn('Supabase payment findAll error:', err);
+      }
+    }
+
+    let filtered = [...memoryPayments];
+    if (options?.status) {
+      filtered = filtered.filter((p) => p.status === options.status);
+    }
+    if (options?.from) {
+      filtered = filtered.filter((p) => p.created_at >= options.from!);
+    }
+    if (options?.to) {
+      filtered = filtered.filter((p) => p.created_at < options.to!);
+    }
+    if (options?.paidFrom) {
+      filtered = filtered.filter((p) => Boolean(p.paid_at) && p.paid_at! >= options.paidFrom!);
+    }
+    if (options?.paidTo) {
+      filtered = filtered.filter((p) => Boolean(p.paid_at) && p.paid_at! < options.paidTo!);
+    }
+
+    filtered.sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    return {
+      payments: filtered.slice(from, to + 1).map((p) => ({ ...p })),
+      total: filtered.length,
+    };
+  }
+
   async findById(id: string): Promise<Payment | null> {
     if (isSupabaseConfigured()) {
       try {

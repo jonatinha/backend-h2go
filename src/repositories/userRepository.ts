@@ -1,4 +1,4 @@
-﻿import { UserProfile, UserRole } from '../types/index.js';
+import { UserProfile, UserRole } from '../types/index.js';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 
 const isTest = process.env.NODE_ENV === 'test';
@@ -143,6 +143,39 @@ export class UserRepository {
     if (error) throw new Error(`Falha ao contar perfis: ${error.message}`);
     if (count === null) throw new Error('Supabase não retornou a contagem de perfis.');
     return count;
+  }
+
+  async updateProfile(
+    id: string,
+    updates: Partial<Pick<UserProfile, 'full_name' | 'phone' | 'role' | 'is_active'>>
+  ): Promise<UserProfile | null> {
+    const now = new Date().toISOString();
+    if (isTest || !isSupabaseConfigured()) {
+      const idx = memoryUsers.findIndex((u) => u.id === id);
+      if (idx === -1) return null;
+      memoryUsers[idx] = { ...memoryUsers[idx], ...updates, updated_at: now };
+      return { ...memoryUsers[idx] };
+    }
+
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ ...updates, updated_at: now })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (!error && data) return data;
+    } catch (err) {
+      console.warn('Supabase updateProfile error, fallback to memory:', err);
+    }
+
+    const idx = memoryUsers.findIndex((u) => u.id === id);
+    if (idx !== -1) {
+      memoryUsers[idx] = { ...memoryUsers[idx], ...updates, updated_at: now };
+      return { ...memoryUsers[idx] };
+    }
+    return null;
   }
 }
 

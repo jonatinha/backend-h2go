@@ -1,4 +1,4 @@
-﻿import { Payment, PaymentMethod, PaymentStatus } from '../types/index.js';
+import { Payment, PaymentMethod, PaymentStatus } from '../types/index.js';
 import { paymentRepository } from '../repositories/paymentRepository.js';
 import { orderRepository } from '../repositories/orderRepository.js';
 
@@ -65,13 +65,47 @@ export class PendingPaymentProvider implements PaymentProvider {
     payload: any,
     _headers: Record<string, string>
   ): Promise<{ processed: boolean; orderId?: string; status?: PaymentStatus }> {
-    const paymentId = payload?.payment_id || payload?.id;
-    const newStatus: PaymentStatus = payload?.status || 'approved';
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return { processed: false };
+    }
+
+    const paymentId =
+      typeof payload.payment_id === 'string'
+        ? payload.payment_id
+        : typeof payload.id === 'string'
+          ? payload.id
+          : undefined;
+
+    const allowedStatuses: PaymentStatus[] = [
+      'pending',
+      'processing',
+      'approved',
+      'rejected',
+      'cancelled',
+      'refunded',
+    ];
+
+    const receivedStatus: unknown = payload.status;
+
+    if (
+      !paymentId ||
+      typeof receivedStatus !== 'string' ||
+      !allowedStatuses.includes(receivedStatus as PaymentStatus)
+    ) {
+      return { processed: false };
+    }
+
+    const newStatus = receivedStatus as PaymentStatus;
 
     if (paymentId) {
       const payment = await paymentRepository.findById(paymentId);
       if (payment) {
-        await paymentRepository.updateStatus(paymentId, newStatus, new Date().toISOString());
+        const paidAt =
+          newStatus === 'approved'
+            ? (payment.paid_at || new Date().toISOString())
+            : undefined;
+
+        await paymentRepository.updateStatus(paymentId, newStatus, paidAt);
         await paymentRepository.createEvent(paymentId, 'webhook_received', payload);
 
         if (newStatus === 'approved') {

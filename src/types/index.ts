@@ -1,4 +1,4 @@
-﻿export type UserRole = 'customer' | 'admin';
+export type UserRole = 'customer' | 'admin';
 
 export interface UserProfile {
   id: string;
@@ -90,6 +90,8 @@ export interface Address {
   city: string;
   state: string;
   reference: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   is_default: boolean;
   created_at: string;
   updated_at: string;
@@ -128,6 +130,10 @@ export interface Order {
   currency: string;
   notes: string | null;
   idempotency_key: string | null;
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];

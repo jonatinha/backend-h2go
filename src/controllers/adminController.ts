@@ -1,4 +1,4 @@
-﻿import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { adminService } from '../services/adminService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { orderRepository } from '../repositories/orderRepository.js';
@@ -111,6 +111,96 @@ export class AdminController {
   async getHealth(_request: FastifyRequest, reply: FastifyReply) {
     const health = healthService.getHealth();
     return reply.send(formatSuccess(health));
+  }
+
+  async createProduct(request: FastifyRequest, reply: FastifyReply) {
+    const body = request.body as any;
+    if (!body?.name || body.price === undefined) {
+      return reply.status(400).send(
+        formatError('INVALID_PRODUCT', 'Nome e preço são obrigatórios.', request.requestId)
+      );
+    }
+    const slug = body.slug || body.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const sku = body.sku || 'H2GO-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+
+    const product = await productRepository.create({
+      category_id: body.category_id || null,
+      name: body.name,
+      slug,
+      sku,
+      description: body.description || null,
+      price: Number(body.price),
+      unit: body.unit || 'un',
+      minimum_quantity: Number(body.minimum_quantity) || 1,
+      maximum_quantity: body.maximum_quantity ? Number(body.maximum_quantity) : null,
+      quantity_step: Number(body.quantity_step) || 1,
+      package_size: body.package_size ? Number(body.package_size) : null,
+      package_label: body.package_label || null,
+      image_url: body.image_url || null,
+      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
+      stock_control_enabled: body.stock_control_enabled !== undefined ? Boolean(body.stock_control_enabled) : false,
+      stock_quantity: Number(body.stock_quantity) || 0,
+    });
+    return reply.status(201).send(formatSuccess(product));
+  }
+
+  async updateProduct(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const body = request.body as any;
+    const updated = await productRepository.update(id, {
+      ...body,
+      price: body.price !== undefined ? Number(body.price) : undefined,
+      stock_quantity: body.stock_quantity !== undefined ? Number(body.stock_quantity) : undefined,
+    });
+    if (!updated) {
+      return reply.status(404).send(formatError('NOT_FOUND', 'Produto não encontrado.', request.requestId));
+    }
+    return reply.send(formatSuccess(updated));
+  }
+
+  async deleteProduct(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const success = await productRepository.delete(id);
+    if (!success) {
+      return reply.status(404).send(formatError('NOT_FOUND', 'Produto não encontrado.', request.requestId));
+    }
+    return reply.send(formatSuccess({ message: 'Produto excluído com sucesso.' }));
+  }
+
+  async updateOrder(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const body = request.body as any;
+    const updated = await orderRepository.updateOrder(id, body);
+    if (!updated) {
+      return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
+    }
+    return reply.send(formatSuccess(updated));
+  }
+
+  async createUser(request: FastifyRequest, reply: FastifyReply) {
+    const body = request.body as any;
+    if (!body?.email) {
+      return reply.status(400).send(formatError('INVALID_USER', 'E-mail é obrigatório.', request.requestId));
+    }
+    const user = await userRepository.createProfile({
+      id: crypto.randomUUID(),
+      email: body.email,
+      full_name: body.full_name || null,
+      phone: body.phone || null,
+      role: body.role || 'customer',
+      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
+    });
+    return reply.status(201).send(formatSuccess(user));
+  }
+
+  async updateUser(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const body = request.body as any;
+    const updated = await userRepository.updateProfile(id, body);
+    if (!updated) {
+      return reply.status(404).send(formatError('NOT_FOUND', 'Usuário não encontrado.', request.requestId));
+    }
+    return reply.send(formatSuccess(updated));
   }
 }
 

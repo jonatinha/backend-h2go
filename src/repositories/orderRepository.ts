@@ -1,4 +1,4 @@
-﻿import { Order, OrderItem, OrderStatus } from '../types/index.js';
+import { Order, OrderItem, OrderStatus } from '../types/index.js';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 import { calculatePackage } from '../utils/fardo.js';
 
@@ -104,6 +104,8 @@ export class OrderRepository {
     page?: number;
     limit?: number;
     status?: OrderStatus;
+    from?: string;
+    to?: string;
   }): Promise<{ orders: Order[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
@@ -119,6 +121,8 @@ export class OrderRepository {
         if (options?.status) {
           query = query.eq('status', options.status);
         }
+        if (options?.from) query = query.gte('created_at', options.from);
+        if (options?.to) query = query.lt('created_at', options.to);
 
         const { data, count, error } = await query
           .order('created_at', { ascending: false })
@@ -139,6 +143,8 @@ export class OrderRepository {
     if (options?.status) {
       filtered = filtered.filter((o) => o.status === options.status);
     }
+    if (options?.from) filtered = filtered.filter((o) => o.created_at >= options.from!);
+    if (options?.to) filtered = filtered.filter((o) => o.created_at < options.to!);
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const total = filtered.length;
@@ -234,6 +240,31 @@ export class OrderRepository {
 
     order.status = status;
     order.updated_at = now;
+    return this.enrichMemoryOrder(order);
+  }
+
+  async updateOrder(id: string, updates: Partial<Order>): Promise<Order | null> {
+    const now = new Date().toISOString();
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('orders')
+          .update({ ...updates, updated_at: now })
+          .eq('id', id)
+          .select('*, items:order_items(*), address:addresses(*)')
+          .single();
+
+        if (!error && data) return this.mapOrder(data);
+      } catch (err) {
+        console.warn('Supabase updateOrder error, updating locally:', err);
+      }
+    }
+
+    const order = memoryOrders.find((o) => o.id === id);
+    if (!order) return null;
+
+    Object.assign(order, updates, { updated_at: now });
     return this.enrichMemoryOrder(order);
   }
 

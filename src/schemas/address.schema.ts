@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 export const createAddressSchema = z.object({
   name: z.string().min(2, 'Nome do destinatário obrigatório'),
@@ -11,6 +11,8 @@ export const createAddressSchema = z.object({
   city: z.string().min(2, 'Cidade obrigatória'),
   state: z.string().min(2, 'Estado obrigatório (UF)'),
   reference: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   is_default: z.boolean().default(false),
 });
 
