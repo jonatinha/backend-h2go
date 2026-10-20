@@ -1,6 +1,12 @@
-import { supabaseAnon, supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
+﻿import { supabaseAnon, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { UserProfile } from '../types/index.js';
+
+const isTest = () => process.env.NODE_ENV === 'test';
+
+function unavailable(): Error {
+  return new Error('AUTH_SERVICE_UNAVAILABLE: Serviço de autenticação indisponível ou não configurado.');
+}
 
 export class AuthService {
   async register(
@@ -10,62 +16,52 @@ export class AuthService {
     phone?: string
   ): Promise<{ user: UserProfile; session?: any }> {
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAnon.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              phone: phone,
-              role: 'customer',
-            },
-          },
-        });
-
-        if (error) {
-          throw new Error(`AUTH_ERROR: ${error.message}`);
-        }
-
-        if (data.user) {
-          const profile = await userRepository.createProfile({
-            id: data.user.id,
-            email: data.user.email || email,
-            full_name: fullName || null,
-            phone: phone || null,
+      const { data, error } = await supabaseAnon.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone,
             role: 'customer',
-            is_active: true,
-          });
+          },
+        },
+      });
 
-          let session = data.session;
-          if (!session) {
-            try {
-              const loginRes = await supabaseAnon.auth.signInWithPassword({ email, password });
-              if (loginRes.data?.session) {
-                session = loginRes.data.session;
-              }
-            } catch (autoLoginErr) {
-              console.warn('Auto-login after signup warning:', autoLoginErr);
-            }
-          }
+      if (error) throw new Error(`AUTH_ERROR: ${error.message}`);
+      if (!data.user) throw new Error('AUTH_ERROR: Não foi possível criar o usuário.');
 
-          return { user: profile, session };
-        }
-      } catch (err: any) {
-        if (err.message?.startsWith('AUTH_ERROR:')) throw err;
-        console.warn('Supabase auth register error, fallback locally:', err);
+      const profile = await userRepository.createProfile({
+        id: data.user.id,
+        email: data.user.email || email,
+        full_name: fullName || null,
+        phone: phone || null,
+        role: 'customer',
+        is_active: true,
+      });
+
+      let session = data.session;
+
+      if (!session) {
+        const { data: loginData, error: loginError } =
+          await supabaseAnon.auth.signInWithPassword({ email, password });
+
+        if (!loginError) session = loginData.session;
       }
+
+      return { user: profile, session };
     }
 
-    // Local Mock Auth Registration for test/demo environments
+    if (!isTest()) throw unavailable();
+
     const existing = await userRepository.findByEmail(email);
     if (existing) {
       throw new Error('AUTH_EMAIL_EXISTS: Este e-mail já está cadastrado.');
     }
 
-    const newId = crypto.randomUUID();
-    const profile = await userRepository.createProfile({
-      id: newId,
+    const id = crypto.randomUUID();
+    const user = await userRepository.createProfile({
+      id,
       email,
       full_name: fullName || null,
       phone: phone || null,
@@ -73,91 +69,101 @@ export class AuthService {
       is_active: true,
     });
 
-    const mockSession = {
-      access_token: `mock_jwt_token_${newId}`,
-      refresh_token: `mock_refresh_token_${newId}`,
-      expires_in: 3600,
-      token_type: 'bearer',
+    return {
+      user,
+      session: {
+        access_token: `mock_jwt_token_${id}`,
+        refresh_token: `mock_refresh_token_${id}`,
+        expires_in: 3600,
+        token_type: 'bearer',
+      },
     };
-
-    return { user: profile, session: mockSession };
   }
 
   async login(email: string, password: string): Promise<{ user: UserProfile; session: any }> {
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAnon.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { data, error } = await supabaseAnon.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          throw new Error(`AUTH_INVALID_CREDENTIALS: ${error.message}`);
-        }
-
-        if (data.user) {
-          let profile = await userRepository.findById(data.user.id);
-          if (!profile) {
-            profile = await userRepository.createProfile({
-              id: data.user.id,
-              email: data.user.email || email,
-              full_name: data.user.user_metadata?.full_name || null,
-              phone: data.user.user_metadata?.phone || null,
-              role: data.user.user_metadata?.role || 'customer',
-              is_active: true,
-            });
-          }
-
-          return { user: profile, session: data.session };
-        }
-      } catch (err: any) {
-        if (err.message?.startsWith('AUTH_INVALID_CREDENTIALS:')) throw err;
-        console.warn('Supabase auth login error, fallback locally:', err);
+      if (error || !data.user || !data.session) {
+        throw new Error('AUTH_INVALID_CREDENTIALS: E-mail ou senha incorretos.');
       }
+
+      const user = await userRepository.findById(data.user.id);
+
+      if (!user) {
+        await supabaseAnon.auth.signOut();
+        throw new Error('AUTH_PROFILE_REQUIRED: Perfil não encontrado. Entre em contato com o suporte.');
+      }
+
+      if (!user.is_active) {
+        await supabaseAnon.auth.signOut();
+        throw new Error('AUTH_USER_INACTIVE: Usuário inativo.');
+      }
+
+      return { user, session: data.session };
     }
 
-    // Fallback login
+    if (!isTest()) throw unavailable();
+
     const user = await userRepository.findByEmail(email);
-    if (!user) {
+    if (!user || !user.is_active) {
       throw new Error('AUTH_INVALID_CREDENTIALS: E-mail ou senha incorretos.');
     }
 
-    const mockSession = {
-      access_token: `mock_jwt_token_${user.id}`,
-      refresh_token: `mock_refresh_token_${user.id}`,
-      expires_in: 3600,
-      token_type: 'bearer',
+    return {
+      user,
+      session: {
+        access_token: `mock_jwt_token_${user.id}`,
+        refresh_token: `mock_refresh_token_${user.id}`,
+        expires_in: 3600,
+        token_type: 'bearer',
+      },
     };
-
-    return { user, session: mockSession };
   }
 
-  async logout(token: string): Promise<void> {
+  async logout(_token: string): Promise<void> {
     if (isSupabaseConfigured()) {
-      try {
-        await supabaseAnon.auth.signOut();
-      } catch (err) {
-        // ignore logout errors
-      }
+      const { error } = await supabaseAnon.auth.signOut();
+      if (error) console.warn('Supabase logout warning:', error.message);
     }
   }
 
   async refresh(refreshToken: string): Promise<{ session: any }> {
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAnon.auth.refreshSession({ refresh_token: refreshToken });
-        if (error || !data.session) {
-          throw new Error('AUTH_REFRESH_FAILED: Token de renovação inválido ou expirado.');
-        }
-        return { session: data.session };
-      } catch (err: any) {
-        if (err.message?.startsWith('AUTH_REFRESH_FAILED:')) throw err;
+      const { data, error } = await supabaseAnon.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
+
+      if (error || !data.session) {
+        throw new Error('AUTH_REFRESH_FAILED: Token de renovação inválido ou expirado.');
       }
+
+      return { session: data.session };
+    }
+
+    if (!isTest()) throw unavailable();
+
+    const prefix = 'mock_refresh_token_';
+    if (!refreshToken.startsWith(prefix)) {
+      throw new Error('AUTH_REFRESH_FAILED: Token de renovação inválido ou expirado.');
+    }
+
+    const userId = refreshToken.slice(prefix.length);
+    if (!userId) {
+      throw new Error('AUTH_REFRESH_FAILED: Token de renovação inválido ou expirado.');
+    }
+
+    const user = await userRepository.findById(userId);
+    if (!user || !user.is_active) {
+      throw new Error('AUTH_REFRESH_FAILED: Token de renovação inválido ou expirado.');
     }
 
     return {
       session: {
-        access_token: `mock_jwt_token_refreshed_${Date.now()}`,
+        access_token: `mock_jwt_token_${userId}`,
         refresh_token: refreshToken,
         expires_in: 3600,
         token_type: 'bearer',
@@ -166,13 +172,13 @@ export class AuthService {
   }
 
   async forgotPassword(email: string): Promise<void> {
-    if (isSupabaseConfigured()) {
-      try {
-        await supabaseAnon.auth.resetPasswordForEmail(email);
-      } catch (err) {
-        // silent
-      }
+    if (!isSupabaseConfigured()) {
+      if (!isTest()) throw unavailable();
+      return;
     }
+
+    const { error } = await supabaseAnon.auth.resetPasswordForEmail(email);
+    if (error) throw new Error(`AUTH_ERROR: ${error.message}`);
   }
 
   async getMe(userId: string): Promise<UserProfile | null> {

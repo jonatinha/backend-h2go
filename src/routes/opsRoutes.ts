@@ -1,4 +1,4 @@
-﻿import { FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { opsController } from '../controllers/opsController.js';
 
 export async function opsRoutes(fastify: FastifyInstance) {
@@ -21,6 +21,17 @@ export async function opsRoutes(fastify: FastifyInstance) {
   }
 
   // Admin Ops Auth endpoints
-  fastify.post('/ops/api/login', opsController.login.bind(opsController));
+  fastify.post(
+    '/ops/api/login',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    opsController.login.bind(opsController)
+  );
   fastify.post('/ops/api/logout', opsController.logout.bind(opsController));
 }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -135,16 +135,13 @@
       <div id="login-error" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 12px; display: none;"></div>
       <div class="form-group">
         <label>E-mail ou Usuário Admin</label>
-        <input type="text" id="login-user" value="admin@h2go.com.br" />
+        <input type="text" id="login-user" autocomplete="username" />
       </div>
       <div class="form-group">
         <label>Senha</label>
-        <input type="password" id="login-pass" value="admin-h2go-smart-change-me" />
+        <input type="password" id="login-pass" autocomplete="current-password" />
       </div>
       <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="performLogin()">Entrar no /ops</button>
-      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 14px; text-align: center;">
-        Dica: Você também pode usar as credenciais admin do .env ou usuário de teste (admin@h2go.com.br / admin).
-      </div>
     </div>
   </div>
 
@@ -201,17 +198,13 @@
   </main>
 
   <script>
-    let currentToken = localStorage.getItem('h2go_ops_token') || '';
+    let currentToken = '';
     let currentTab = 'dashboard';
 
     function init() {
-      if (currentToken) {
-        document.getElementById('login-overlay').style.display = 'none';
-        const hash = window.location.hash.replace('#', '') || 'dashboard';
-        navigate(hash);
-      } else {
-        document.getElementById('login-overlay').style.display = 'flex';
-      }
+      document.getElementById('login-overlay').style.display = 'none';
+      const hash = window.location.hash.replace('#', '') || 'dashboard';
+      navigate(hash);
     }
 
     async function performLogin() {
@@ -226,9 +219,8 @@
           body: JSON.stringify({ username: user, password: pass }),
         });
         const json = await res.json();
-        if (json.success && json.data?.token) {
-          currentToken = json.data.token;
-          localStorage.setItem('h2go_ops_token', currentToken);
+        if (json.success && json.data?.user) {
+          currentToken = '';
           document.getElementById('login-overlay').style.display = 'none';
           document.getElementById('logged-user-label').innerText = json.data.user?.email || 'Admin';
           navigate('dashboard');
@@ -242,9 +234,11 @@
       }
     }
 
-    function performLogout() {
+    async function performLogout() {
       currentToken = '';
-      localStorage.removeItem('h2go_ops_token');
+      try {
+        await fetch('/ops/api/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (_) {}
       document.getElementById('login-overlay').style.display = 'flex';
     }
 
@@ -257,13 +251,13 @@
     }
 
     async function opsFetch(url, options = {}) {
-      options.headers = {
-        ...(options.headers || {}),
-        'Authorization': `Bearer ${currentToken}`,
-      };
-      const res = await fetch(url, options);
+      const res = await fetch(url, {
+        ...options,
+        credentials: 'same-origin',
+        headers: { ...(options.headers || {}) },
+      });
       if (res.status === 401 || res.status === 403) {
-        performLogout();
+        await performLogout();
         throw new Error('Sessão expirada.');
       }
       return res.json();
