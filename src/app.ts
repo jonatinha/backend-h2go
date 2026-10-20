@@ -57,11 +57,11 @@ export async function buildApp(): Promise<FastifyInstance> {
     secret: env.JWT_SECRET,
   });
 
-  // 2. Static Assets for /ops
+  // 2. Static Assets (/ops and product images)
   let staticRoot = path.resolve(__dirname, 'public');
   await app.register(fastifyStatic, {
     root: staticRoot,
-    prefix: '/ops/assets/',
+    prefix: '/public/',
   });
 
   // 3. Documentation (Swagger /docs)

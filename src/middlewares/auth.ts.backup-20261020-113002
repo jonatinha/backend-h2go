@@ -1,0 +1,84 @@
+﻿import { FastifyRequest, FastifyReply } from 'fastify';
+import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { formatError } from '../utils/response.js';
+
+export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+  const requestId = request.requestId || 'req_auth';
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send(
+      formatError('UNAUTHORIZED', 'Autenticação necessária.', requestId)
+    );
+  }
+
+  const token = authHeader.slice(7).trim();
+
+  if (!token || !isSupabaseConfigured()) {
+    return reply.status(401).send(
+      formatError('UNAUTHORIZED', 'Token inválido ou autenticação indisponível.', requestId)
+    );
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !data.user) {
+      return reply.status(401).send(
+        formatError('INVALID_TOKEN', 'Token inválido ou expirado.', requestId)
+      );
+    }
+
+    // Consulte diretamente o perfil no banco. Não confie em user_metadata
+    // nem em perfis locais de demonstração para conceder acesso.
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email, full_name, role, is_active')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      request.log.error({ err: profileError }, 'Falha ao consultar perfil autenticado');
+      return reply.status(503).send(
+        formatError('PROFILE_LOOKUP_FAILED', 'Não foi possível verificar as permissões.', requestId)
+      );
+    }
+
+    if (!profile) {
+      return reply.status(403).send(
+        formatError('PROFILE_REQUIRED', 'Usuário sem perfil autorizado.', requestId)
+      );
+    }
+
+    if (!profile.is_active) {
+      return reply.status(403).send(
+        formatError('USER_INACTIVE', 'Esta conta está desativada.', requestId)
+      );
+    }
+
+    request.user = {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role,
+      full_name: profile.full_name,
+    };
+  } catch (err) {
+    request.log.error({ err }, 'Erro ao validar token Supabase');
+    return reply.status(401).send(
+      formatError('AUTH_ERROR', 'Falha ao validar autenticação.', requestId)
+    );
+  }
+}
+
+export async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
+  await requireAuth(request, reply);
+  if (reply.sent) return;
+
+  const requestId = request.requestId || 'req_admin';
+
+  if (!request.user || request.user.role !== 'admin') {
+    return reply.status(403).send(
+      formatError('FORBIDDEN', 'Apenas administradores podem acessar este recurso.', requestId)
+    );
+  }
+}

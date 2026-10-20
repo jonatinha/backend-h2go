@@ -1,0 +1,230 @@
+import { env } from '../config/env.js';
+import { isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { userRepository } from '../repositories/userRepository.js';
+import { productRepository } from '../repositories/productRepository.js';
+import { orderRepository } from '../repositories/orderRepository.js';
+import { paymentRepository } from '../repositories/paymentRepository.js';
+import { logsRepository } from '../repositories/logsRepository.js';
+import { settingsRepository } from '../repositories/settingsRepository.js';
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function dateKey(value: string): string {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function money(value: unknown): number {
+  const result = Number(value);
+  return Number.isFinite(result) ? result : 0;
+}
+
+export class AdminService {
+  async getDashboard() {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const currentStart = new Date(todayStart.getTime() - 6 * DAY);
+    const previousStart = new Date(currentStart.getTime() - 7 * DAY);
+    const nextDay = new Date(todayStart.getTime() + DAY);
+
+    const [
+      usersCount,
+      productsResult,
+      metrics,
+      recentErrors,
+      recentRequests,
+      settings,
+    ] = await Promise.all([
+      userRepository.count(),
+      productRepository.findAll({ limit: 100 }),
+      logsRepository.getMetrics(),
+      logsRepository.findLogs({ hasError: true, limit: 10 }),
+      logsRepository.findLogs({ limit: 20 }),
+      settingsRepository.getAll(),
+    ]);
+
+    // Pagina todos os registros para não calcular indicadores usando apenas
+    // os primeiros mil pedidos/pagamentos.
+    const allOrders: Awaited<ReturnType<typeof orderRepository.findAll>>['orders'] = [];
+    let orderPage = 1;
+    let orderTotal = 0;
+    do {
+      const result = await orderRepository.findAll({ page: orderPage, limit: 200 });
+      allOrders.push(...result.orders);
+      orderTotal = result.total;
+      orderPage += 1;
+    } while (allOrders.length < orderTotal && orderPage <= 10000);
+
+    const allPayments: Awaited<ReturnType<typeof paymentRepository.findAll>>['payments'] = [];
+    let paymentPage = 1;
+    let paymentTotal = 0;
+    do {
+      const result = await paymentRepository.findAll({ page: paymentPage, limit: 200 });
+      allPayments.push(...result.payments);
+      paymentTotal = result.total;
+      paymentPage += 1;
+    } while (allPayments.length < paymentTotal && paymentPage <= 10000);
+
+    const currentStartIso = currentStart.toISOString();
+    const nextDayIso = nextDay.toISOString();
+    const previousStartIso = previousStart.toISOString();
+
+    const currentOrders = allOrders.filter(
+      (o) => o.created_at >= currentStartIso && o.created_at < nextDayIso
+    );
+    const previousOrders = allOrders.filter(
+      (o) => o.created_at >= previousStartIso && o.created_at < currentStartIso
+    );
+
+    const currentOrderIds = new Set(currentOrders.map((o) => o.id));
+    const previousOrderIds = new Set(previousOrders.map((o) => o.id));
+
+    const currentPayments = allPayments.filter(
+      (p) => currentOrderIds.has(p.order_id) && p.status === 'approved'
+    );
+    const previousPayments = allPayments.filter(
+      (p) => previousOrderIds.has(p.order_id) && p.status === 'approved'
+    );
+
+    const sumOrders = (orders: typeof allOrders) =>
+      orders.reduce((sum, o) => sum + money(o.total), 0);
+    const sumPayments = (payments: typeof allPayments) =>
+      payments.reduce((sum, p) => sum + money(p.amount), 0);
+
+    const currentRevenue = sumPayments(currentPayments);
+    const previousRevenue = sumPayments(previousPayments);
+    const paidOrderIds = new Set(currentPayments.map((p) => p.order_id));
+    const previousPaidOrderIds = new Set(previousPayments.map((p) => p.order_id));
+
+    const countStatus = (orders: typeof allOrders, status: string) =>
+      orders.filter((o) => o.status === status).length;
+
+    const daily = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(currentStart.getTime() + index * DAY);
+      const key = date.toISOString().slice(0, 10);
+      const orders = currentOrders.filter((o) => dateKey(o.created_at) === key);
+      const orderIds = new Set(orders.map((o) => o.id));
+      const payments = currentPayments.filter((p) => orderIds.has(p.order_id));
+      return {
+        date: key,
+        orders: orders.length,
+        order_value: sumOrders(orders),
+        confirmed_revenue: sumPayments(payments),
+      };
+    });
+
+    const productTotals = new Map<string, { name: string; quantity: number; value: number }>();
+    for (const order of currentOrders) {
+      for (const item of order.items || []) {
+        const name = item.product_name || 'Produto sem nome';
+        const existing = productTotals.get(name) || { name, quantity: 0, value: 0 };
+        existing.quantity += Math.max(0, money(item.quantity));
+        existing.value += money(item.subtotal);
+        productTotals.set(name, existing);
+      }
+    }
+
+    const topProducts = [...productTotals.values()]
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+
+    const recentOrders = [...allOrders]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 10)
+      .map((order) => {
+        const payment = allPayments.find((p) => p.order_id === order.id);
+        return {
+          id: order.id,
+          created_at: order.created_at,
+          status: order.status,
+          total: money(order.total),
+          currency: order.currency || 'BRL',
+          payment_status: payment?.status || 'not_found',
+          payment_method: payment?.method || null,
+        };
+      });
+
+    const ordersPending = countStatus(allOrders, 'pending');
+    const ordersPreparing = countStatus(allOrders, 'preparing');
+    const ordersDelivered = countStatus(allOrders, 'delivered');
+    const ordersCancelled = countStatus(allOrders, 'cancelled');
+
+    return {
+      api_status: 'ONLINE',
+      environment: env.NODE_ENV,
+      version: '1.0.0',
+      uptime: Math.floor(process.uptime()),
+      last_check: now.toISOString(),
+      database: 'CONNECTED',
+      supabase: isSupabaseConfigured() ? 'CONNECTED' : 'DISCONNECTED',
+      counts: {
+        users: usersCount,
+        products: productsResult.total,
+        orders: orderTotal,
+        orders_pending: ordersPending,
+        orders_preparing: ordersPreparing,
+        orders_delivered: ordersDelivered,
+        orders_cancelled: ordersCancelled,
+      },
+      metrics: {
+        total_requests: metrics.totalRequests,
+        total_errors: metrics.totalErrors,
+        avg_duration_ms: metrics.avgDurationMs,
+        status_2xx: metrics.status2xx,
+        status_3xx: metrics.status3xx,
+        status_4xx: metrics.status4xx,
+        status_5xx: metrics.status5xx,
+      },
+      commercial: {
+        currency: 'BRL',
+        period: {
+          from: currentStartIso,
+          to: nextDayIso,
+          previous_from: previousStartIso,
+          previous_to: currentStartIso,
+        },
+        current: {
+          orders: currentOrders.length,
+          order_value: sumOrders(currentOrders),
+          confirmed_revenue: currentRevenue,
+          paid_orders: paidOrderIds.size,
+          pending_orders: countStatus(currentOrders, 'pending'),
+          cancelled_orders: countStatus(currentOrders, 'cancelled'),
+          average_paid_ticket: paidOrderIds.size ? currentRevenue / paidOrderIds.size : 0,
+        },
+        previous: {
+          orders: previousOrders.length,
+          order_value: sumOrders(previousOrders),
+          confirmed_revenue: previousRevenue,
+          paid_orders: previousPaidOrderIds.size,
+          pending_orders: countStatus(previousOrders, 'pending'),
+          cancelled_orders: countStatus(previousOrders, 'cancelled'),
+          average_paid_ticket: previousPaidOrderIds.size
+            ? previousRevenue / previousPaidOrderIds.size
+            : 0,
+        },
+        payment_status: {
+          approved: allPayments.filter((p) => p.status === 'approved').length,
+          pending: allPayments.filter((p) => p.status === 'pending').length,
+          processing: allPayments.filter((p) => p.status === 'processing').length,
+          rejected: allPayments.filter((p) => p.status === 'rejected').length,
+          cancelled: allPayments.filter((p) => p.status === 'cancelled').length,
+          refunded: allPayments.filter((p) => p.status === 'refunded').length,
+        },
+        alerts: {
+          pending_payments: allPayments.filter((p) => p.status === 'pending').length,
+          failed_payments: allPayments.filter((p) => p.status === 'rejected').length,
+        },
+        daily,
+        top_products: topProducts,
+        recent_orders: recentOrders,
+      },
+      recent_errors: recentErrors.logs,
+      recent_requests: recentRequests.logs,
+      settings,
+    };
+  }
+}
+
+export const adminService = new AdminService();

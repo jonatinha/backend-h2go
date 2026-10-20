@@ -1,0 +1,348 @@
+﻿import { env } from '../config/env.js';
+import { isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { userRepository } from '../repositories/userRepository.js';
+import { productRepository } from '../repositories/productRepository.js';
+import { orderRepository } from '../repositories/orderRepository.js';
+import { paymentRepository } from '../repositories/paymentRepository.js';
+import { logsRepository } from '../repositories/logsRepository.js';
+import { settingsRepository } from '../repositories/settingsRepository.js';
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function money(value: unknown): number {
+  const result = Number(value);
+  return Number.isFinite(result) ? result : 0;
+}
+
+export class AdminService {
+  private async getAllOrders(options: {
+    status?: import('../types/index.js').OrderStatus;
+    from?: string;
+    to?: string;
+  } = {}) {
+    const pageSize = 500;
+    const orders: Awaited<ReturnType<typeof orderRepository.findAll>>['orders'] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await orderRepository.findAll({
+        ...options,
+        page,
+        limit: pageSize,
+      });
+
+      orders.push(...result.orders);
+      total = result.total;
+      page += 1;
+
+      if (result.orders.length === 0) break;
+    } while (orders.length < total);
+
+    return { orders, total };
+  }
+
+  private async getAllPayments(options: {
+    status?: import('../types/index.js').PaymentStatus;
+    from?: string;
+    to?: string;
+    paidFrom?: string;
+    paidTo?: string;
+  } = {}) {
+    const pageSize = 500;
+    const payments: Awaited<ReturnType<typeof paymentRepository.findAll>>['payments'] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await paymentRepository.findAll({
+        ...options,
+        page,
+        limit: pageSize,
+      });
+
+      payments.push(...result.payments);
+      total = result.total;
+      page += 1;
+
+      if (result.payments.length === 0) break;
+    } while (payments.length < total);
+
+    return { payments, total };
+  }
+  private async getAllOrders(options: {
+    status?: import('../types/index.js').OrderStatus;
+    from?: string;
+    to?: string;
+  } = {}) {
+    const pageSize = 500;
+    const orders: Awaited<ReturnType<typeof orderRepository.findAll>>['orders'] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await orderRepository.findAll({
+        ...options,
+        page,
+        limit: pageSize,
+      });
+
+      orders.push(...result.orders);
+      total = result.total;
+      page += 1;
+
+      if (result.orders.length === 0) break;
+    } while (orders.length < total);
+
+    return { orders, total };
+  }
+
+  private async getAllPayments(options: {
+    status?: import('../types/index.js').PaymentStatus;
+    from?: string;
+    to?: string;
+    paidFrom?: string;
+    paidTo?: string;
+  } = {}) {
+    const pageSize = 500;
+    const payments: Awaited<ReturnType<typeof paymentRepository.findAll>>['payments'] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await paymentRepository.findAll({
+        ...options,
+        page,
+        limit: pageSize,
+      });
+
+      payments.push(...result.payments);
+      total = result.total;
+      page += 1;
+
+      if (result.payments.length === 0) break;
+    } while (payments.length < total);
+
+    return { payments, total };
+  }
+  async getDashboard() {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const currentStart = new Date(todayStart.getTime() - 6 * DAY);
+    const previousStart = new Date(currentStart.getTime() - 7 * DAY);
+    const nextDay = new Date(todayStart.getTime() + DAY);
+
+    const currentFrom = currentStart.toISOString();
+    const currentTo = nextDay.toISOString();
+    const previousFrom = previousStart.toISOString();
+    const previousTo = currentFrom;
+
+    const [
+      usersCount,
+      productsResult,
+      metrics,
+      recentErrors,
+      recentRequests,
+      settings,
+      totalOrdersResult,
+      pendingOrdersResult,
+      preparingOrdersResult,
+      deliveredOrdersResult,
+      cancelledOrdersResult,
+      currentOrdersResult,
+      previousOrdersResult,
+      recentOrdersResult,
+      currentPaymentsResult,
+      previousPaymentsResult,
+      currentApprovedPaymentsResult,
+      previousApprovedPaymentsResult,
+      pendingPaymentsResult,
+      failedPaymentsResult,
+    ] = await Promise.all([
+      userRepository.count(),
+      productRepository.findAll({ limit: 100 }),
+      logsRepository.getMetrics(),
+      logsRepository.findLogs({ hasError: true, limit: 10 }),
+      logsRepository.findLogs({ limit: 20 }),
+      settingsRepository.getAll(),
+
+      orderRepository.findAll({ page: 1, limit: 1 }),
+      orderRepository.findAll({ page: 1, limit: 1, status: 'pending' }),
+      orderRepository.findAll({ page: 1, limit: 1, status: 'preparing' }),
+      orderRepository.findAll({ page: 1, limit: 1, status: 'delivered' }),
+      orderRepository.findAll({ page: 1, limit: 1, status: 'cancelled' }),
+
+      this.getAllOrders({ from: currentFrom, to: currentTo }),
+      this.getAllOrders({ from: previousFrom, to: previousTo }),
+      orderRepository.findAll({ page: 1, limit: 10 }),
+
+      this.getAllPayments({ from: currentFrom, to: currentTo }),
+      this.getAllPayments({ from: previousFrom, to: previousTo }),
+      this.getAllPayments({ paidFrom: currentFrom, paidTo: currentTo, status: 'approved' }),
+      this.getAllPayments({ paidFrom: previousFrom, paidTo: previousTo, status: 'approved' }),
+      paymentRepository.findAll({ page: 1, limit: 1, status: 'pending' }),
+      paymentRepository.findAll({ page: 1, limit: 1, status: 'rejected' }),
+    ]);
+
+    const currentOrders = currentOrdersResult.orders;
+    const previousOrders = previousOrdersResult.orders;
+    const recentOrders = recentOrdersResult.orders;
+    const currentPayments = currentPaymentsResult.payments;
+    const previousPayments = previousPaymentsResult.payments;
+
+    const sumOrders = (orders: typeof currentOrders) =>
+      orders.reduce((sum, order) => sum + money(order.total), 0);
+
+    const currentApprovedPayments = currentApprovedPaymentsResult.payments;
+    const previousApprovedPayments = previousApprovedPaymentsResult.payments;
+
+    const sumApprovedPayments = (payments: typeof currentApprovedPayments) =>
+      payments.reduce((sum, payment) => sum + money(payment.amount), 0);
+
+    const paidOrderIds = new Set(
+      currentApprovedPayments.map((payment) => payment.order_id)
+    );
+    const previousPaidOrderIds = new Set(
+      previousApprovedPayments.map((payment) => payment.order_id)
+    );
+
+    const currentRevenue = sumApprovedPayments(currentApprovedPayments);
+    const previousRevenue = sumApprovedPayments(previousApprovedPayments);
+
+    const countStatus = (orders: typeof currentOrders, status: string) =>
+      orders.filter((order) => order.status === status).length;
+
+    const daily = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(currentStart.getTime() + index * DAY);
+      const key = date.toISOString().slice(0, 10);
+      const orders = currentOrders.filter((order) => order.created_at.slice(0, 10) === key);
+      const payments = currentApprovedPayments.filter(
+        (payment) => payment.paid_at?.slice(0, 10) === key
+      );
+
+      return {
+        date: key,
+        orders: orders.length,
+        order_value: sumOrders(orders),
+        confirmed_revenue: payments.reduce((sum, payment) => sum + money(payment.amount), 0),
+      };
+    });
+
+    const productTotals = new Map<string, { name: string; quantity: number; value: number }>();
+    for (const order of currentOrders) {
+      if (order.status === 'cancelled') continue;
+
+      for (const item of order.items || []) {
+        const name = item.product_name || 'Produto sem nome';
+        const existing = productTotals.get(name) || { name, quantity: 0, value: 0 };
+        existing.quantity += Math.max(0, money(item.quantity));
+        existing.value += money(item.subtotal);
+        productTotals.set(name, existing);
+      }
+    }
+
+    const topProducts = [...productTotals.values()]
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+
+    const latestPaymentsByOrder = new Map<string, (typeof currentPayments)[number]>();
+    for (const payment of currentPayments) {
+      if (!latestPaymentsByOrder.has(payment.order_id)) {
+        latestPaymentsByOrder.set(payment.order_id, payment);
+      }
+    }
+
+    const formattedRecentOrders = recentOrders.map((order) => {
+      const payment = latestPaymentsByOrder.get(order.id);
+      return {
+        id: order.id,
+        created_at: order.created_at,
+        status: order.status,
+        total: money(order.total),
+        currency: order.currency || 'BRL',
+        payment_status: payment?.status || 'not_loaded',
+        payment_method: payment?.method || null,
+      };
+    });
+
+    return {
+      api_status: 'ONLINE',
+      environment: env.NODE_ENV,
+      version: '1.0.0',
+      uptime: Math.floor(process.uptime()),
+      last_check: now.toISOString(),
+      database: 'CONNECTED',
+      supabase: isSupabaseConfigured() ? 'CONNECTED' : 'DISCONNECTED',
+      counts: {
+        users: usersCount,
+        products: productsResult.total,
+        orders: totalOrdersResult.total,
+        orders_pending: pendingOrdersResult.total,
+        orders_preparing: preparingOrdersResult.total,
+        orders_delivered: deliveredOrdersResult.total,
+        orders_cancelled: cancelledOrdersResult.total,
+      },
+      metrics: {
+        total_requests: metrics.totalRequests,
+        total_errors: metrics.totalErrors,
+        avg_duration_ms: metrics.avgDurationMs,
+        status_2xx: metrics.status2xx,
+        status_3xx: metrics.status3xx,
+        status_4xx: metrics.status4xx,
+        status_5xx: metrics.status5xx,
+      },
+      commercial: {
+        currency: 'BRL',
+        period: {
+          from: currentFrom,
+          to: currentTo,
+          previous_from: previousFrom,
+          previous_to: previousTo,
+        },
+        current: {
+          orders: currentOrdersResult.total,
+          order_value: sumOrders(currentOrders),
+          confirmed_revenue: currentRevenue,
+          paid_orders: paidOrderIds.size,
+          pending_orders: countStatus(currentOrders, 'pending'),
+          cancelled_orders: countStatus(currentOrders, 'cancelled'),
+          average_paid_ticket: paidOrderIds.size ? currentRevenue / paidOrderIds.size : 0,
+        },
+        previous: {
+          orders: previousOrdersResult.total,
+          order_value: sumOrders(previousOrders),
+          confirmed_revenue: previousRevenue,
+          paid_orders: previousPaidOrderIds.size,
+          pending_orders: countStatus(previousOrders, 'pending'),
+          cancelled_orders: countStatus(previousOrders, 'cancelled'),
+          average_paid_ticket: previousPaidOrderIds.size ? previousRevenue / previousPaidOrderIds.size : 0,
+        },
+        payment_status: {
+          approved: currentPayments.filter((payment) => payment.status === 'approved').length,
+          pending: currentPayments.filter((payment) => payment.status === 'pending').length,
+          processing: currentPayments.filter((payment) => payment.status === 'processing').length,
+          rejected: currentPayments.filter((payment) => payment.status === 'rejected').length,
+          cancelled: currentPayments.filter((payment) => payment.status === 'cancelled').length,
+          refunded: currentPayments.filter((payment) => payment.status === 'refunded').length,
+        },
+        alerts: {
+          pending_payments: pendingPaymentsResult.total,
+          failed_payments: failedPaymentsResult.total,
+        },
+        daily,
+        top_products: topProducts,
+        recent_orders: formattedRecentOrders,
+      },
+      recent_errors: recentErrors.logs,
+      recent_requests: recentRequests.logs,
+      settings,
+    };
+  }
+}
+
+export const adminService = new AdminService();
+
+
+

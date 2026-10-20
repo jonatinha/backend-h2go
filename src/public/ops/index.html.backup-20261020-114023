@@ -1,0 +1,666 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2GO SMART - Operação & Debug (/ops)</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-border: #1f2937;
+      --surface-hover: #1e293b;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --accent: #38bdf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --tag-bg: rgba(255,255,255,0.05);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); display: flex; min-height: 100vh; }
+    
+    /* Login Overlay */
+    #login-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-box {
+      background: var(--surface); border: 1px solid var(--surface-border); border-radius: 12px;
+      padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    }
+    .login-box h2 { font-size: 1.5rem; margin-bottom: 8px; color: var(--accent); }
+    .login-box p { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 24px; }
+    
+    /* Layout */
+    aside {
+      width: 260px; background: var(--surface); border-right: 1px solid var(--surface-border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .brand { padding: 24px 20px; border-bottom: 1px solid var(--surface-border); }
+    .brand h1 { font-size: 1.15rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .brand span { font-size: 0.75rem; background: var(--primary); padding: 2px 6px; border-radius: 4px; }
+    
+    nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+    nav a {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--text-muted);
+      text-decoration: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+    }
+    nav a:hover { background: var(--surface-hover); color: #fff; }
+    nav a.active { background: rgba(2, 132, 199, 0.15); color: var(--accent); font-weight: 600; }
+    
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--surface-border); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+    .btn-logout { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.8rem; }
+    
+    main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    header {
+      padding: 16px 24px; border-bottom: 1px solid var(--surface-border); background: var(--surface);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .status-badges { display: flex; gap: 12px; align-items: center; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px;
+      font-size: 0.75rem; font-weight: 600; background: var(--tag-bg); border: 1px solid var(--surface-border);
+    }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-green { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .dot-yellow { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+    .dot-red { background: var(--danger); }
+    
+    .content-area { padding: 24px; max-width: 1300px; width: 100%; margin: 0 auto; }
+    
+    /* Cards & Grids */
+    .grid-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--surface-border); border-radius: 10px; padding: 20px;
+    }
+    .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 8px; }
+    .card .val { font-size: 1.75rem; font-weight: 700; color: #fff; }
+    .card .sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    
+    /* Tables */
+    .table-container { background: var(--surface); border: 1px solid var(--surface-border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; }
+    .table-header h2 { font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+    th { padding: 12px 16px; background: rgba(255,255,255,0.02); color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--surface-border); }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--surface-border); }
+    tr:hover td { background: var(--surface-hover); }
+    
+    .status-pill {
+      padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+    }
+    .pill-2xx { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .pill-4xx { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .pill-5xx { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    
+    /* Inputs & Buttons */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; background: #0b0f19; border: 1px solid var(--surface-border);
+      border-radius: 6px; color: #fff; font-size: 0.9rem; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn {
+      padding: 9px 16px; border-radius: 6px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--tag-bg); border: 1px solid var(--surface-border); color: #fff; }
+    
+    /* Modal */
+    #detail-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1001;
+    }
+    .modal-content {
+      background: var(--surface); border: 1px solid var(--surface-border); border-radius: 10px;
+      padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+    }
+    pre { background: #080c14; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; color: #a5f3fc; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Modal -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>Painel /ops H2GO</h2>
+      <p>Acesso exclusivo para administradores da API.</p>
+      <div id="login-error" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 12px; display: none;"></div>
+      <div class="form-group">
+        <label>E-mail ou Usuário Admin</label>
+        <input type="text" id="login-user" value="admin@h2go.com.br" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" value="admin-h2go-smart-change-me" />
+      </div>
+      <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="performLogin()">Entrar no /ops</button>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 14px; text-align: center;">
+        Dica: Você também pode usar as credenciais admin do .env ou usuário de teste (admin@h2go.com.br / admin).
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="modal-title">Detalhes</h3>
+        <button onclick="closeModal()" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside>
+    <div class="brand">
+      <h1>H2GO SMART <span>OPS</span></h1>
+    </div>
+    <nav>
+      <a href="#dashboard" class="active" onclick="navigate('dashboard')">📊 Dashboard</a>
+      <a href="#requests" onclick="navigate('requests')">⚡ Requests</a>
+      <a href="#errors" onclick="navigate('errors')">🚨 Erros</a>
+      <a href="#products" onclick="navigate('products')">📦 Produtos</a>
+      <a href="#orders" onclick="navigate('orders')">🛒 Pedidos</a>
+      <a href="#users" onclick="navigate('users')">👥 Usuários</a>
+      <a href="#database" onclick="navigate('database')">🗄️ Banco & Supabase</a>
+      <a href="#health" onclick="navigate('health')">💓 Saúde (Health)</a>
+      <a href="#settings" onclick="navigate('settings')">⚙️ Configurações</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span id="logged-user-label">Admin</span>
+      <button class="btn-logout" onclick="performLogout()">Sair</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <header>
+      <div class="status-badges">
+        <div class="badge"><div class="badge-dot dot-green"></div> API <span id="hdr-api-status">ONLINE</span></div>
+        <div class="badge"><div class="badge-dot" id="hdr-db-dot"></div> Banco <span id="hdr-db-status">CONNECTED</span></div>
+        <div class="badge"><div class="badge-dot" id="hdr-sb-dot"></div> Supabase <span id="hdr-sb-status">CONNECTED</span></div>
+        <div class="badge">Env: <span id="hdr-env" style="color: var(--accent); margin-left: 4px;">development</span></div>
+      </div>
+      <div>
+        <button class="btn btn-secondary" onclick="loadCurrentView()">🔄 Atualizar</button>
+      </div>
+    </header>
+
+    <div class="content-area" id="view-container">
+      <!-- Dynamic View Injected Here -->
+    </div>
+  </main>
+
+  <script>
+    let currentToken = localStorage.getItem('h2go_ops_token') || '';
+    let currentTab = 'dashboard';
+
+    function init() {
+      if (currentToken) {
+        document.getElementById('login-overlay').style.display = 'none';
+        const hash = window.location.hash.replace('#', '') || 'dashboard';
+        navigate(hash);
+      } else {
+        document.getElementById('login-overlay').style.display = 'flex';
+      }
+    }
+
+    async function performLogin() {
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value.trim();
+      const errBox = document.getElementById('login-error');
+
+      try {
+        const res = await fetch('/ops/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass }),
+        });
+        const json = await res.json();
+        if (json.success && json.data?.token) {
+          currentToken = json.data.token;
+          localStorage.setItem('h2go_ops_token', currentToken);
+          document.getElementById('login-overlay').style.display = 'none';
+          document.getElementById('logged-user-label').innerText = json.data.user?.email || 'Admin';
+          navigate('dashboard');
+        } else {
+          errBox.innerText = json.error?.message || 'Falha no login.';
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.innerText = 'Erro ao comunicar com a API.';
+        errBox.style.display = 'block';
+      }
+    }
+
+    function performLogout() {
+      currentToken = '';
+      localStorage.removeItem('h2go_ops_token');
+      document.getElementById('login-overlay').style.display = 'flex';
+    }
+
+    function navigate(tab) {
+      currentTab = tab;
+      document.querySelectorAll('nav a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + tab);
+      });
+      loadCurrentView();
+    }
+
+    async function opsFetch(url, options = {}) {
+      options.headers = {
+        ...(options.headers || {}),
+        'Authorization': `Bearer ${currentToken}`,
+      };
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        performLogout();
+        throw new Error('Sessão expirada.');
+      }
+      return res.json();
+    }
+
+    async function loadCurrentView() {
+      const container = document.getElementById('view-container');
+      try {
+        if (currentTab === 'dashboard') await renderDashboard(container);
+        else if (currentTab === 'requests') await renderRequests(container);
+        else if (currentTab === 'errors') await renderErrors(container);
+        else if (currentTab === 'products') await renderProducts(container);
+        else if (currentTab === 'orders') await renderOrders(container);
+        else if (currentTab === 'users') await renderUsers(container);
+        else if (currentTab === 'database') await renderDatabase(container);
+        else if (currentTab === 'health') await renderHealth(container);
+        else if (currentTab === 'settings') await renderSettings(container);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // 1. Dashboard View
+    async function renderDashboard(container) {
+      const data = await opsFetch('/api/v1/admin/dashboard');
+      const d = data.data;
+
+      // Update header badges
+      document.getElementById('hdr-env').innerText = d.environment;
+      document.getElementById('hdr-api-status').innerText = d.api_status;
+      document.getElementById('hdr-db-status').innerText = d.database;
+      document.getElementById('hdr-sb-status').innerText = d.supabase;
+      document.getElementById('hdr-db-dot').className = 'badge-dot dot-green';
+      document.getElementById('hdr-sb-dot').className = 'badge-dot ' + (d.supabase === 'CONNECTED' ? 'dot-green' : 'dot-yellow');
+
+      container.innerHTML = `
+        <div class="grid-metrics">
+          <div class="card">
+            <h3>Usuários</h3>
+            <div class="val">${d.counts.users}</div>
+            <div class="sub">Cadastrados no sistema</div>
+          </div>
+          <div class="card">
+            <h3>Produtos Ativos</h3>
+            <div class="val">${d.counts.products}</div>
+            <div class="sub">Catálogo V1 oficial</div>
+          </div>
+          <div class="card">
+            <h3>Total de Pedidos</h3>
+            <div class="val">${d.counts.orders}</div>
+            <div class="sub">${d.counts.orders_pending} pendentes / ${d.counts.orders_preparing} em preparo</div>
+          </div>
+          <div class="card">
+            <h3>Tempo Médio Requisições</h3>
+            <div class="val">${d.metrics.avg_duration_ms} ms</div>
+            <div class="sub">${d.metrics.total_requests} requisições registradas</div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <h2>🚨 Erros Recentes</h2>
+            <button class="btn btn-secondary" onclick="navigate('errors')">Ver Todos</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Timestamp</th><th>Método</th><th>Rota</th><th>Código</th><th>Mensagem</th><th>Request ID</th></tr>
+            </thead>
+            <tbody>
+              ${d.recent_errors.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Nenhum erro registrado recente! 🎉</td></tr>' : 
+                d.recent_errors.slice(0, 5).map(e => `
+                  <tr>
+                    <td>${new Date(e.created_at).toLocaleTimeString()}</td>
+                    <td><b>${e.method}</b></td>
+                    <td>${e.route}</td>
+                    <td><span class="status-pill pill-5xx">${e.error_code || 'ERROR'}</span></td>
+                    <td>${e.error_message || '-'}</td>
+                    <td><code>${e.request_id}</code></td>
+                  </tr>
+                `).join('')
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <h2>⚡ Requisições Recentes</h2>
+            <button class="btn btn-secondary" onclick="navigate('requests')">Ver Todos</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Timestamp</th><th>Método</th><th>Rota</th><th>Status</th><th>Duração</th><th>Request ID</th></tr>
+            </thead>
+            <tbody>
+              ${d.recent_requests.slice(0, 8).map(r => `
+                <tr>
+                  <td>${new Date(r.created_at).toLocaleTimeString()}</td>
+                  <td><b>${r.method}</b></td>
+                  <td>${r.route}</td>
+                  <td><span class="status-pill ${r.status_code < 300 ? 'pill-2xx' : r.status_code < 500 ? 'pill-4xx' : 'pill-5xx'}">${r.status_code}</span></td>
+                  <td>${r.duration} ms</td>
+                  <td><code>${r.request_id}</code></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 2. Requests View
+    async function renderRequests(container) {
+      const data = await opsFetch('/api/v1/admin/logs?limit=50');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Histórico de Requests</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Data/Hora</th><th>Método</th><th>Endpoint</th><th>Status</th><th>Tempo</th><th>IP</th><th>Request ID</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.map(r => `
+                <tr style="cursor:pointer;" onclick='showDetail("Requisição", ${JSON.stringify(r)})'>
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td><b>${r.method}</b></td>
+                  <td>${r.route}</td>
+                  <td><span class="status-pill ${r.status_code < 300 ? 'pill-2xx' : r.status_code < 500 ? 'pill-4xx' : 'pill-5xx'}">${r.status_code}</span></td>
+                  <td>${r.duration} ms</td>
+                  <td>${r.ip || '-'}</td>
+                  <td><code>${r.request_id}</code></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 3. Errors View
+    async function renderErrors(container) {
+      const data = await opsFetch('/api/v1/admin/logs?hasError=true&limit=50');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Log de Erros Registrados</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Timestamp</th><th>Método</th><th>Rota</th><th>Status</th><th>Código</th><th>Mensagem</th><th>Request ID</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum erro registrado no sistema!</td></tr>' :
+                data.data.map(e => `
+                  <tr style="cursor:pointer;" onclick='showDetail("Detalhes do Erro", ${JSON.stringify(e)})'>
+                    <td>${new Date(e.created_at).toLocaleString()}</td>
+                    <td><b>${e.method}</b></td>
+                    <td>${e.route}</td>
+                    <td><span class="status-pill pill-5xx">${e.status_code}</span></td>
+                    <td>${e.error_code || 'ERROR'}</td>
+                    <td>${e.error_message || '-'}</td>
+                    <td><code>${e.request_id}</code></td>
+                  </tr>
+                `).join('')
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 4. Products View
+    async function renderProducts(container) {
+      const data = await opsFetch('/api/v1/admin/products');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Catálogo de Produtos (${data.data.length})</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>SKU</th><th>Preço</th><th>Mínimo / Múltiplo</th><th>Fardo</th><th>Status</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.map(p => `
+                <tr>
+                  <td><b>${p.name}</b></td>
+                  <td><code>${p.sku}</code></td>
+                  <td>R$ ${Number(p.price).toFixed(2)}</td>
+                  <td>Min: ${p.minimum_quantity} | Step: ${p.quantity_step}${p.maximum_quantity ? ` | Max: ${p.maximum_quantity}` : ''}</td>
+                  <td>${p.package_size ? `${p.package_size} un (${p.package_label})` : '-'}</td>
+                  <td><span class="status-pill ${p.is_active ? 'pill-2xx' : 'pill-5xx'}">${p.is_active ? 'ATIVO' : 'INATIVO'}</span></td>
+                  <td>
+                    <button class="btn btn-secondary" style="padding:4px 8px;font-size:0.75rem;" onclick="toggleProductStatus('${p.id}', ${!p.is_active})">
+                      ${p.is_active ? 'Desativar' : 'Ativar'}
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function toggleProductStatus(id, newStatus) {
+      await opsFetch(`/api/v1/admin/products/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newStatus }),
+      });
+      loadCurrentView();
+    }
+
+    // 5. Orders View
+    async function renderOrders(container) {
+      const data = await opsFetch('/api/v1/admin/orders');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Pedidos de Clientes (${data.data.length})</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>ID Pedido</th><th>Data</th><th>Itens</th><th>Subtotal</th><th>Frete</th><th>Total</th><th>Status</th><th>Alterar Status</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Nenhum pedido realizado ainda.</td></tr>' :
+                data.data.map(o => `
+                  <tr>
+                    <td><code>${o.id.substring(0,8)}...</code></td>
+                    <td>${new Date(o.created_at).toLocaleString()}</td>
+                    <td>${(o.items || []).map(i => `${i.quantity}x ${i.product_name}`).join('<br>')}</td>
+                    <td>R$ ${Number(o.subtotal).toFixed(2)}</td>
+                    <td>R$ ${Number(o.shipping_fee).toFixed(2)}</td>
+                    <td><b>R$ ${Number(o.total).toFixed(2)}</b></td>
+                    <td><span class="status-pill pill-2xx">${o.status.toUpperCase()}</span></td>
+                    <td>
+                      <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:4px 6px;font-size:0.75rem;">
+                        <option value="">Mudar Status...</option>
+                        <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>pending</option>
+                        <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>confirmed</option>
+                        <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>preparing</option>
+                        <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>out_for_delivery</option>
+                        <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>delivered</option>
+                        <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                `).join('')
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      if (!status) return;
+      await opsFetch(`/api/v1/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      loadCurrentView();
+    }
+
+    // 6. Users View
+    async function renderUsers(container) {
+      const data = await opsFetch('/api/v1/admin/users');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Perfis de Usuários</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Perfil (Role)</th><th>Status</th><th>Cadastrado em</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.map(u => `
+                <tr>
+                  <td><b>${u.full_name || '-'}</b></td>
+                  <td>${u.email}</td>
+                  <td>${u.phone || '-'}</td>
+                  <td><span class="status-pill ${u.role === 'admin' ? 'pill-4xx' : 'pill-2xx'}">${u.role.toUpperCase()}</span></td>
+                  <td>${u.is_active ? 'Ativo' : 'Inativo'}</td>
+                  <td>${new Date(u.created_at).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 7. Database View
+    async function renderDatabase(container) {
+      const data = await opsFetch('/api/v1/admin/dashboard');
+      container.innerHTML = `
+        <div class="card" style="margin-bottom: 24px;">
+          <h3>Conectividade com Banco de Dados & Supabase</h3>
+          <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="background: #080c14; padding: 16px; border-radius: 8px;">
+              <h4>Supabase PostgreSQL</h4>
+              <p style="margin-top: 8px; color: var(--success); font-weight: 600;">Status: ${data.data.database}</p>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Tabelas: profiles, products, categories, carts, cart_items, addresses, orders, order_items, payments, payment_events, api_logs, system_settings.</p>
+            </div>
+            <div style="background: #080c14; padding: 16px; border-radius: 8px;">
+              <h4>Supabase Auth & Storage</h4>
+              <p style="margin-top: 8px; color: var(--accent); font-weight: 600;">Supabase Client: ${data.data.supabase}</p>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Bucket de Imagens: <code>products</code> preparado.</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 8. Health View
+    async function renderHealth(container) {
+      const data = await opsFetch('/api/v1/admin/health');
+      const h = data.data;
+      container.innerHTML = `
+        <div class="grid-metrics">
+          <div class="card">
+            <h3>Status API</h3>
+            <div class="val" style="color: var(--success);">${h.status.toUpperCase()}</div>
+            <div class="sub">Versão: ${h.version}</div>
+          </div>
+          <div class="card">
+            <h3>Uptime</h3>
+            <div class="val">${h.uptime}s</div>
+            <div class="sub">Desde inicialização</div>
+          </div>
+          <div class="card">
+            <h3>Memória RSS</h3>
+            <div class="val">${h.memory.rss}</div>
+            <div class="sub">Heap: ${h.memory.heapUsed}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 9. Settings View
+    async function renderSettings(container) {
+      const data = await opsFetch('/api/v1/admin/system');
+      container.innerHTML = `
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Configurações do Sistema (system_settings)</h2>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Chave</th><th>Valor Atual</th><th>Descrição</th><th>Pública?</th><th>Ação</th></tr>
+            </thead>
+            <tbody>
+              ${data.data.map(s => `
+                <tr>
+                  <td><code>${s.key}</code></td>
+                  <td><input type="text" id="setting-${s.key}" value="${s.value}" style="width: 200px; padding: 4px 8px;" /></td>
+                  <td>${s.description || '-'}</td>
+                  <td>${s.is_public ? 'Sim' : 'Não'}</td>
+                  <td>
+                    <button class="btn btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="saveSetting('${s.key}')">Salvar</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function saveSetting(key) {
+      const input = document.getElementById(`setting-${key}`);
+      if (!input) return;
+      await opsFetch('/api/v1/admin/system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: input.value }),
+      });
+      alert(`Configuração ${key} atualizada com sucesso!`);
+    }
+
+    function showDetail(title, data) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      document.getElementById('detail-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('detail-modal').style.display = 'none';
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
