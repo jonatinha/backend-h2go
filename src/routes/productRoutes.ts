@@ -1,4 +1,4 @@
-﻿import { FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { productController } from '../controllers/productController.js';
 import { requireAdmin } from '../middlewares/auth.js';
 
@@ -10,10 +10,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.get('/categories', productController.listCategories.bind(productController));
   fastify.get('/categories/:id/products', productController.listCategoryProducts.bind(productController));
 
-  // Admin product management
-  fastify.post('/admin/products', { preHandler: [requireAdmin] }, productController.create.bind(productController));
-  fastify.patch('/admin/products/:id', { preHandler: [requireAdmin] }, productController.update.bind(productController));
-  fastify.delete('/admin/products/:id', { preHandler: [requireAdmin] }, productController.delete.bind(productController));
+  // Admin status and price routes (unique to productController)
   fastify.patch('/admin/products/:id/status', { preHandler: [requireAdmin] }, productController.updateStatus.bind(productController));
   fastify.patch('/admin/products/:id/price', { preHandler: [requireAdmin] }, productController.updatePrice.bind(productController));
 }
