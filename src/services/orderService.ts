@@ -1,4 +1,4 @@
-﻿import { Order, OrderStatus, PaymentMethod } from '../types/index.js';
+import { Order, OrderStatus, PaymentMethod } from '../types/index.js';
 import { orderRepository } from '../repositories/orderRepository.js';
 import { cartRepository } from '../repositories/cartRepository.js';
 import { addressRepository } from '../repositories/addressRepository.js';
@@ -83,7 +83,7 @@ export class OrderService {
     const total = addMoney(subtotal, shippingFee);
     const paymentMethod: PaymentMethod = input.payment_method || 'cash';
 
-    // 5. Create Order & Items
+    // 5. Create Order & Items (copia latitude e longitude exata do endereço para o pedido)
     const order = await orderRepository.create(
       {
         user_id: userId,
@@ -96,6 +96,8 @@ export class OrderService {
         currency: 'BRL',
         notes: input.notes || null,
         idempotency_key: idempotencyKey || null,
+        latitude: address.latitude ?? null,
+        longitude: address.longitude ?? null,
       },
       orderItemsToCreate
     );

@@ -187,6 +187,8 @@ export class OrderRepository {
           currency: newOrder.currency,
           notes: newOrder.notes,
           idempotency_key: newOrder.idempotency_key,
+          latitude: newOrder.latitude ?? null,
+          longitude: newOrder.longitude ?? null,
         });
 
         if (!orderError) {
@@ -269,8 +271,22 @@ export class OrderRepository {
   }
 
   private mapOrder(data: any): Order {
+    // Extrai latitude e longitude da tabela de orders, ou da tabela de addresses vinculada, ou das notas do pedido
+    let lat = data.latitude ? Number(data.latitude) : (data.address?.latitude ? Number(data.address.latitude) : (data.addresses?.latitude ? Number(data.addresses.latitude) : null));
+    let lng = data.longitude ? Number(data.longitude) : (data.address?.longitude ? Number(data.address.longitude) : (data.addresses?.longitude ? Number(data.addresses.longitude) : null));
+
+    if ((!lat || !lng) && data.notes && typeof data.notes === 'string') {
+      const match = data.notes.match(/Pin GPS:\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)/i);
+      if (match) {
+        lat = parseFloat(match[1]);
+        lng = parseFloat(match[2]);
+      }
+    }
+
     return {
       ...data,
+      latitude: lat,
+      longitude: lng,
       subtotal: Number(data.subtotal),
       shipping_fee: Number(data.shipping_fee),
       discount: Number(data.discount),
