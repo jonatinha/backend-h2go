@@ -13,6 +13,17 @@ function mapAgency(row: Record<string, unknown>): Agency {
   };
 }
 
+function useMemoryStore(): boolean {
+  return process.env.NODE_ENV === 'test' && !isSupabaseConfigured();
+}
+
+function dbFailure(action: string, error: { message?: string; code?: string } | null): never {
+  const detail = error?.message || error?.code || 'erro desconhecido';
+  throw new Error(
+    `AGENCY_DB_ERROR: Não foi possível ${action} no Supabase (${detail}). Verifique SUPABASE_SERVICE_ROLE_KEY na Vercel.`
+  );
+}
+
 export class AgencyRepository {
   async findAll(options?: {
     page?: number;
@@ -28,36 +39,35 @@ export class AgencyRepository {
     const to = from + limit - 1;
 
     if (isSupabaseConfigured()) {
-      try {
-        let query = supabaseAdmin.from('agencies').select('*', { count: 'exact' });
+      let query = supabaseAdmin.from('agencies').select('*', { count: 'exact' });
 
-        if (options?.activeOnly !== false) {
-          query = query.eq('is_active', true);
-        }
-        if (options?.pickupOnly !== false) {
-          query = query.eq('accepts_pickup', true);
-        }
-        if (options?.city) {
-          query = query.ilike('city', options.city.trim());
-        }
-        if (options?.state) {
-          query = query.ilike('state', options.state.trim());
-        }
-
-        const { data, count, error } = await query
-          .order('sort_order', { ascending: true })
-          .order('name', { ascending: true })
-          .range(from, to);
-
-        if (!error && data) {
-          return {
-            agencies: data.map((row) => mapAgency(row)),
-            total: count || data.length,
-          };
-        }
-      } catch (err) {
-        console.warn('Supabase agencies query error, using local fallback:', err);
+      if (options?.activeOnly !== false) {
+        query = query.eq('is_active', true);
       }
+      if (options?.pickupOnly !== false) {
+        query = query.eq('accepts_pickup', true);
+      }
+      if (options?.city) {
+        query = query.ilike('city', options.city.trim());
+      }
+      if (options?.state) {
+        query = query.ilike('state', options.state.trim());
+      }
+
+      const { data, count, error } = await query
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+        .range(from, to);
+
+      if (error) dbFailure('listar agências', error);
+      return {
+        agencies: (data || []).map((row) => mapAgency(row)),
+        total: count ?? data?.length ?? 0,
+      };
+    }
+
+    if (!useMemoryStore()) {
+      throw new Error('AGENCY_DB_ERROR: Supabase não configurado para persistir agências.');
     }
 
     let filtered = [...memoryAgencies];
@@ -83,38 +93,34 @@ export class AgencyRepository {
 
   async findById(id: string): Promise<Agency | null> {
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('agencies')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
+      const { data, error } = await supabaseAdmin
+        .from('agencies')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
 
-        if (!error && data) return mapAgency(data);
-      } catch (err) {
-        console.warn('Supabase agency findById error:', err);
-      }
+      if (error) dbFailure('buscar agência', error);
+      return data ? mapAgency(data) : null;
     }
 
+    if (!useMemoryStore()) return null;
     const found = memoryAgencies.find((a) => a.id === id);
     return found ? { ...found } : null;
   }
 
   async findBySlug(slug: string): Promise<Agency | null> {
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('agencies')
-          .select('*')
-          .eq('slug', slug)
-          .maybeSingle();
+      const { data, error } = await supabaseAdmin
+        .from('agencies')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
 
-        if (!error && data) return mapAgency(data);
-      } catch (err) {
-        console.warn('Supabase agency findBySlug error:', err);
-      }
+      if (error) dbFailure('buscar agência por slug', error);
+      return data ? mapAgency(data) : null;
     }
 
+    if (!useMemoryStore()) return null;
     const found = memoryAgencies.find((a) => a.slug === slug);
     return found ? { ...found } : null;
   }
@@ -123,49 +129,74 @@ export class AgencyRepository {
     agencyData: Omit<Agency, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Agency> {
     const now = new Date().toISOString();
-    const id = crypto.randomUUID();
-    const newAgency: Agency = {
-      id,
-      ...agencyData,
+    const row = {
+      code: agencyData.code,
+      name: agencyData.name,
+      slug: agencyData.slug,
+      phone: agencyData.phone,
+      email: agencyData.email,
+      cep: agencyData.cep,
+      street: agencyData.street,
+      number: agencyData.number,
+      complement: agencyData.complement,
+      neighborhood: agencyData.neighborhood,
+      city: agencyData.city,
+      state: agencyData.state,
+      reference: agencyData.reference,
+      latitude: agencyData.latitude,
+      longitude: agencyData.longitude,
+      pickup_instructions: agencyData.pickup_instructions,
+      opening_hours: agencyData.opening_hours ?? {},
+      accepts_pickup: agencyData.accepts_pickup,
+      is_active: agencyData.is_active,
+      sort_order: agencyData.sort_order,
       created_at: now,
       updated_at: now,
     };
 
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('agencies')
-          .insert(newAgency)
-          .select()
-          .single();
+      const { data, error } = await supabaseAdmin
+        .from('agencies')
+        .insert(row)
+        .select()
+        .single();
 
-        if (!error && data) return mapAgency(data);
-      } catch (err) {
-        console.warn('Supabase agency create error:', err);
-      }
+      if (error) dbFailure('cadastrar agência', error);
+      if (!data) dbFailure('cadastrar agência', { message: 'resposta vazia do banco' });
+      return mapAgency(data);
     }
 
+    if (!useMemoryStore()) {
+      throw new Error('AGENCY_DB_ERROR: Supabase não configurado para persistir agências.');
+    }
+
+    const newAgency: Agency = {
+      id: crypto.randomUUID(),
+      ...agencyData,
+      created_at: now,
+      updated_at: now,
+    };
     memoryAgencies.push(newAgency);
     return newAgency;
   }
 
   async update(id: string, updates: Partial<Agency>): Promise<Agency | null> {
     const now = new Date().toISOString();
+    const { id: _id, created_at: _c, ...safeUpdates } = updates;
 
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('agencies')
-          .update({ ...updates, updated_at: now })
-          .eq('id', id)
-          .select()
-          .single();
+      const { data, error } = await supabaseAdmin
+        .from('agencies')
+        .update({ ...safeUpdates, updated_at: now })
+        .eq('id', id)
+        .select()
+        .single();
 
-        if (!error && data) return mapAgency(data);
-      } catch (err) {
-        console.warn('Supabase agency update error:', err);
-      }
+      if (error) dbFailure('atualizar agência', error);
+      return data ? mapAgency(data) : null;
     }
+
+    if (!useMemoryStore()) return null;
 
     const index = memoryAgencies.findIndex((a) => a.id === id);
     if (index === -1) return null;
@@ -180,13 +211,12 @@ export class AgencyRepository {
 
   async delete(id: string): Promise<boolean> {
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabaseAdmin.from('agencies').delete().eq('id', id);
-        if (!error) return true;
-      } catch (err) {
-        console.warn('Supabase agency delete error:', err);
-      }
+      const { error } = await supabaseAdmin.from('agencies').delete().eq('id', id);
+      if (error) dbFailure('excluir agência', error);
+      return true;
     }
+
+    if (!useMemoryStore()) return false;
 
     const before = memoryAgencies.length;
     memoryAgencies = memoryAgencies.filter((a) => a.id !== id);

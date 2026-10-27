@@ -41,6 +41,7 @@ export function errorHandler(error: FastifyError | Error, request: FastifyReques
     if (code.includes('AGENCY_NOT_FOUND') || code.includes('AGENCY_SLUG_EXISTS')) {
       statusCode = code.includes('SLUG') ? 409 : 404;
     }
+    if (code.includes('AGENCY_DB_ERROR')) statusCode = 503;
 
     return reply.status(statusCode).send(
       formatError(code.trim(), cleanMsg, requestId)

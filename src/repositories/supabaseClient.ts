@@ -23,6 +23,7 @@ export const isSupabaseConfigured = (): boolean => {
     /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/.test(url) &&
     Boolean(anonKey) &&
     Boolean(serviceKey) &&
+    serviceKey !== anonKey &&
     !/mock|placeholder|your-project|your-supabase|example/i.test(
       `${url} ${anonKey} ${serviceKey}`
     )
