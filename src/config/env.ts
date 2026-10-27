@@ -24,6 +24,9 @@ const envSchema = z.object({
   STORE_CITY: z.string().default('Ribeirão Branco'),
   STORE_STATE: z.string().default('SP'),
   SHIPPING_FEE_RIBEIRAO_BRANCO: z.coerce.number().nonnegative().default(4.98),
+
+  /** Token secreto Mapbox (sk.*) — apenas backend / geocoding */
+  MAPBOX_ACCESS_TOKEN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
