@@ -22,7 +22,12 @@ export class OrderController {
     const order = await orderService.createOrder(
       request.user.id,
       {
+        fulfillment_type: body.fulfillment_type,
         address_id: body.address_id,
+        agency_id: body.agency_id,
+        pickup_contact_name: body.pickup_contact_name,
+        pickup_contact_phone: body.pickup_contact_phone,
+        pickup_scheduled_at: body.pickup_scheduled_at,
         payment_method: body.payment_method,
         notes: body.notes,
       },
@@ -44,6 +49,7 @@ export class OrderController {
       page: query.page,
       limit: query.limit,
       status: query.status,
+      fulfillment_type: query.fulfillment_type,
     });
 
     return reply.send(formatPaginated(orders, total, query.page, query.limit));

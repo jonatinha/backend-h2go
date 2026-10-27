@@ -97,13 +97,42 @@ export interface Address {
   updated_at: string;
 }
 
+export type FulfillmentType = 'delivery' | 'pickup';
+
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
   | 'preparing'
+  | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered'
   | 'cancelled';
+
+export interface Agency {
+  id: string;
+  code: string;
+  name: string;
+  slug: string;
+  phone: string | null;
+  email: string | null;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  neighborhood: string;
+  city: string;
+  state: string;
+  reference: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  pickup_instructions: string | null;
+  opening_hours: Record<string, unknown>;
+  accepts_pickup: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface OrderItem {
   id: string;
@@ -122,6 +151,13 @@ export interface Order {
   id: string;
   user_id: string;
   address_id: string | null;
+  fulfillment_type: FulfillmentType;
+  agency_id: string | null;
+  pickup_contact_name: string | null;
+  pickup_contact_phone: string | null;
+  pickup_scheduled_at: string | null;
+  ready_for_pickup_at: string | null;
+  picked_up_at: string | null;
   status: OrderStatus;
   subtotal: number;
   shipping_fee: number;
@@ -138,6 +174,7 @@ export interface Order {
   updated_at: string;
   items?: OrderItem[];
   address?: Address;
+  agency?: Agency;
   payment?: Payment;
 }
 

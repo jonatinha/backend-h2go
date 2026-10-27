@@ -169,6 +169,8 @@ export const INITIAL_SETTINGS: SystemSetting[] = [
   { id: '6', key: 'STORE_ACTIVE', value: 'true', description: 'Status de Funcionamento da Loja', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '7', key: 'PAYMENT_ENABLED', value: 'false', description: 'Se pagamentos online automáticos estão ativos', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '8', key: 'ALLOW_CASH_PAYMENT', value: 'true', description: 'Permitir pagamento na entrega', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '8a', key: 'PICKUP_ENABLED', value: 'false', description: 'Habilita a opção de retirada na agência no checkout', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '8b', key: 'PICKUP_SHIPPING_FEE', value: '0.00', description: 'Taxa de frete em pedidos com retirada na agência', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '9', key: 'HERO_BADGE', value: 'Destaque', description: 'Tag do Card Principal (ex: Destaque, Mais Vendido)', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '10', key: 'HERO_TITLE', value: 'Galão 20 L (refil)', description: 'Título do Card Principal', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '11', key: 'HERO_DESCRIPTION', value: 'Galão de água mineral 20 Litros para troca de vasilhame (refil).', description: 'Descrição do Card Principal', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },

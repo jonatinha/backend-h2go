@@ -29,7 +29,18 @@ export function errorHandler(error: FastifyError | Error, request: FastifyReques
     if (code.includes('NOT_FOUND')) statusCode = 404;
     if (code.includes('UNAUTHORIZED') || code.includes('INVALID_CREDENTIALS')) statusCode = 401;
     if (code.includes('FORBIDDEN')) statusCode = 403;
-    if (code.includes('OUT_OF_COVERAGE') || code.includes('CANNOT_CANCEL')) statusCode = 422;
+    if (
+      code.includes('OUT_OF_COVERAGE') ||
+      code.includes('CANNOT_CANCEL') ||
+      code.includes('PICKUP_DISABLED') ||
+      code.includes('INVALID_STATUS') ||
+      code.includes('AGENCY_UNAVAILABLE')
+    ) {
+      statusCode = 422;
+    }
+    if (code.includes('AGENCY_NOT_FOUND') || code.includes('AGENCY_SLUG_EXISTS')) {
+      statusCode = code.includes('SLUG') ? 409 : 404;
+    }
 
     return reply.status(statusCode).send(
       formatError(code.trim(), cleanMsg, requestId)

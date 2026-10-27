@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { adminController } from '../controllers/adminController.js';
+import { agencyController } from '../controllers/agencyController.js';
 import { requireAdmin } from '../middlewares/auth.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -18,6 +19,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/orders/:id', adminController.getOrderById.bind(adminController));
   fastify.patch('/admin/orders/:id/status', adminController.updateOrderStatus.bind(adminController));
   fastify.patch('/admin/orders/:id', adminController.updateOrder.bind(adminController));
+
+  // Agencies (Retirada na agência)
+  fastify.get('/admin/agencies', agencyController.listAdmin.bind(agencyController));
+  fastify.get('/admin/agencies/:id', agencyController.getAdminById.bind(agencyController));
+  fastify.post('/admin/agencies', agencyController.create.bind(agencyController));
+  fastify.patch('/admin/agencies/:id', agencyController.update.bind(agencyController));
+  fastify.delete('/admin/agencies/:id', agencyController.delete.bind(agencyController));
 
   // Products (Catálogo de Água)
   fastify.get('/admin/products', adminController.listProducts.bind(adminController));

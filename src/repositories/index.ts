@@ -2,6 +2,7 @@
 export * from './categoryRepository.js';
 export * from './cartRepository.js';
 export * from './addressRepository.js';
+export * from './agencyRepository.js';
 export * from './orderRepository.js';
 export * from './paymentRepository.js';
 export * from './settingsRepository.js';

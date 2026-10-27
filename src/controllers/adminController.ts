@@ -34,6 +34,7 @@ export class AdminController {
       page: query.page,
       limit: query.limit,
       status: query.status,
+      fulfillment_type: query.fulfillment_type,
     });
     return reply.send(formatPaginated(orders, total, query.page, query.limit));
   }

@@ -1,0 +1,800 @@
+{
+  "api/index.ts": {
+    "mtime": 1792535228.8259337,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b411ec957431e8789db66a4ec04baaa3",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1788637482.4355044,
+    "seen": 1793121396.6160455,
+    "ast_hash": "f68da829fbddb57e2d44a8ad79a0782b",
+    "semantic_hash": ""
+  },
+  "skills-lock.json": {
+    "mtime": 1788639363.4032042,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e91272810f292d0c9627f7d88c9a888d",
+    "semantic_hash": ""
+  },
+  "src/app.ts": {
+    "mtime": 1793121304.8162053,
+    "seen": 1793121396.6160455,
+    "ast_hash": "997c8d7666e74704008437ddb5262405",
+    "semantic_hash": ""
+  },
+  "src/config/env.ts": {
+    "mtime": 1792509392.9205434,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8b28d3f5f5c5677466fea6f72a187ff1",
+    "semantic_hash": ""
+  },
+  "src/controllers/addressController.ts": {
+    "mtime": 1788635286.6252356,
+    "seen": 1793121396.6160455,
+    "ast_hash": "49474e8d1d5e23bfefeff3ae8ad3846d",
+    "semantic_hash": ""
+  },
+  "src/controllers/adminController.ts": {
+    "mtime": 1793121307.162863,
+    "seen": 1793121396.6160455,
+    "ast_hash": "f82a124307083f8ef1944c3213a7e14a",
+    "semantic_hash": ""
+  },
+  "src/controllers/agencyController.ts": {
+    "mtime": 1793121318.4077237,
+    "seen": 1793121396.6160455,
+    "ast_hash": "a1912f922c5d5a87489a3d87ba2d7646",
+    "semantic_hash": ""
+  },
+  "src/controllers/authController.ts": {
+    "mtime": 1788635267.5774643,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d60722c5ebf974d1e06497d43be89e65",
+    "semantic_hash": ""
+  },
+  "src/controllers/cartController.ts": {
+    "mtime": 1788635286.6222303,
+    "seen": 1793121396.6160455,
+    "ast_hash": "2561725ab5b7e2d33bff5aaf75d51706",
+    "semantic_hash": ""
+  },
+  "src/controllers/healthController.ts": {
+    "mtime": 1788635447.062105,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e53ae87f5b6458b4b8a2b0b042bb98bd",
+    "semantic_hash": ""
+  },
+  "src/controllers/opsController.ts": {
+    "mtime": 1792509392.9225528,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d457409435ba357a359896c59245bc63",
+    "semantic_hash": ""
+  },
+  "src/controllers/orderController.ts": {
+    "mtime": 1793121306.4929116,
+    "seen": 1793121396.6160455,
+    "ast_hash": "db6e92776fabe58357cfaed0f6915765",
+    "semantic_hash": ""
+  },
+  "src/controllers/paymentController.ts": {
+    "mtime": 1788635405.9138427,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6466c8b4c569b34927e38672e3f555c2",
+    "semantic_hash": ""
+  },
+  "src/controllers/productController.ts": {
+    "mtime": 1788635267.5799878,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b74cb387ecfe14e6d078a82c8ca8a475",
+    "semantic_hash": ""
+  },
+  "src/middlewares/auth.ts": {
+    "mtime": 1792507224.8967555,
+    "seen": 1793121396.6160455,
+    "ast_hash": "5253bca950eabc2e1dd56df1c45b3782",
+    "semantic_hash": ""
+  },
+  "src/middlewares/errorHandler.ts": {
+    "mtime": 1793121308.1561635,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b54280b49b22721ae08272ce5cee1761",
+    "semantic_hash": ""
+  },
+  "src/middlewares/requestId.ts": {
+    "mtime": 1788635189.2337465,
+    "seen": 1793121396.6160455,
+    "ast_hash": "077ba8f28791dbad653347119fe6ab85",
+    "semantic_hash": ""
+  },
+  "src/middlewares/requestLogger.ts": {
+    "mtime": 1788635189.2362816,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d88685ba7ebd5ea1e5a649c9d9d9dca9",
+    "semantic_hash": ""
+  },
+  "src/modules/admin/index.ts": {
+    "mtime": 1788635982.735694,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6b4bbd3f985f4ebbd4fef1a42f121332",
+    "semantic_hash": ""
+  },
+  "src/modules/auth/index.ts": {
+    "mtime": 1788635982.69348,
+    "seen": 1793121396.6160455,
+    "ast_hash": "aef0b42acaaa80cea0dc54875af807df",
+    "semantic_hash": ""
+  },
+  "src/modules/cart/index.ts": {
+    "mtime": 1788635982.70504,
+    "seen": 1793121396.6160455,
+    "ast_hash": "11ed7ad98726f91cef1f9ad90e3b8ccc",
+    "semantic_hash": ""
+  },
+  "src/modules/health/index.ts": {
+    "mtime": 1788635982.7442403,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e410bdd6cd81a63e55ef36ae45c3f8b2",
+    "semantic_hash": ""
+  },
+  "src/modules/orders/index.ts": {
+    "mtime": 1788635982.7075734,
+    "seen": 1793121396.6160455,
+    "ast_hash": "892aa2d4b2407ce900c26acb8a88437f",
+    "semantic_hash": ""
+  },
+  "src/modules/payments/index.ts": {
+    "mtime": 1788635982.7095916,
+    "seen": 1793121396.6160455,
+    "ast_hash": "134c61f3c81533947407b6fa2a490f13",
+    "semantic_hash": ""
+  },
+  "src/modules/products/index.ts": {
+    "mtime": 1788635982.7030277,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c66de662ad1326e5039c7685b16c0946",
+    "semantic_hash": ""
+  },
+  "src/modules/shipping/index.ts": {
+    "mtime": 1788635982.7125864,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d2aaa15259d7aae4e5a3a3d147804475",
+    "semantic_hash": ""
+  },
+  "src/modules/users/index.ts": {
+    "mtime": 1788635982.6970007,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d6639ef1ba92a2711f6bb003d515b910",
+    "semantic_hash": ""
+  },
+  "src/plugins/swagger.ts": {
+    "mtime": 1788635864.5536654,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b075bc37820a72eb4beacd794289c309",
+    "semantic_hash": ""
+  },
+  "src/repositories/addressRepository.ts": {
+    "mtime": 1788634456.1404662,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6c12623f17484714770487f202ad597d",
+    "semantic_hash": ""
+  },
+  "src/repositories/agencyRepository.ts": {
+    "mtime": 1793121381.4188063,
+    "seen": 1793121396.6160455,
+    "ast_hash": "a85995ddb300304bad36385ff7ebb3a2",
+    "semantic_hash": ""
+  },
+  "src/repositories/cartRepository.ts": {
+    "mtime": 1788634423.3793178,
+    "seen": 1793121396.6160455,
+    "ast_hash": "0ab63857e1f610d42c15204695494ea1",
+    "semantic_hash": ""
+  },
+  "src/repositories/categoryRepository.ts": {
+    "mtime": 1788634383.8571904,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d2f303cf0ee8dcc403b27be9fc7fda65",
+    "semantic_hash": ""
+  },
+  "src/repositories/index.ts": {
+    "mtime": 1793121309.4857943,
+    "seen": 1793121396.6160455,
+    "ast_hash": "943897f1dc79bc67b52a4f2d52f6afb4",
+    "semantic_hash": ""
+  },
+  "src/repositories/initialData.ts": {
+    "mtime": 1793121311.496977,
+    "seen": 1793121396.6160455,
+    "ast_hash": "dc5b7575ecd382b1926cb4868d37e7d9",
+    "semantic_hash": ""
+  },
+  "src/repositories/logsRepository.ts": {
+    "mtime": 1788634744.953361,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8f522a85b39d2f4578d7aaeaf2e250a7",
+    "semantic_hash": ""
+  },
+  "src/repositories/orderRepository.ts": {
+    "mtime": 1793121271.8454764,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8168c650ccf7c294f0482a52c600a305",
+    "semantic_hash": ""
+  },
+  "src/repositories/paymentRepository.ts": {
+    "mtime": 1792514748.8794858,
+    "seen": 1793121396.6160455,
+    "ast_hash": "4579399b3e2758d55b8170281918efed",
+    "semantic_hash": ""
+  },
+  "src/repositories/productRepository.ts": {
+    "mtime": 1788634383.8556635,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8c3ed5ba863c720f41cfe224f83b34cf",
+    "semantic_hash": ""
+  },
+  "src/repositories/settingsRepository.ts": {
+    "mtime": 1788634456.1494658,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b4151436bbac469c5599ff1bee7ef335",
+    "semantic_hash": ""
+  },
+  "src/repositories/supabaseClient.ts": {
+    "mtime": 1792508771.2976034,
+    "seen": 1793121396.6160455,
+    "ast_hash": "44ea1c51f01f90c61a9bc685ad9cf7e2",
+    "semantic_hash": ""
+  },
+  "src/repositories/userRepository.ts": {
+    "mtime": 1792530752.784495,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c307f7448e6e52395ebc5a44865bdb22",
+    "semantic_hash": ""
+  },
+  "src/routes/addressRoutes.ts": {
+    "mtime": 1788635582.011914,
+    "seen": 1793121396.6160455,
+    "ast_hash": "1ba0ccd494ca8539e8fd10c3b9b4b9fa",
+    "semantic_hash": ""
+  },
+  "src/routes/adminRoutes.ts": {
+    "mtime": 1793121303.8275788,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c9162d7a4f1ec464ea078be80711e33a",
+    "semantic_hash": ""
+  },
+  "src/routes/agencyRoutes.ts": {
+    "mtime": 1793121301.7492144,
+    "seen": 1793121396.6160455,
+    "ast_hash": "09c8f1ce6bb28a5cd1199db0521ed08f",
+    "semantic_hash": ""
+  },
+  "src/routes/authRoutes.ts": {
+    "mtime": 1788635582.0023367,
+    "seen": 1793121396.6160455,
+    "ast_hash": "9841e8ac905fe4b5dc35692785388281",
+    "semantic_hash": ""
+  },
+  "src/routes/cartRoutes.ts": {
+    "mtime": 1788635582.0089173,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e4b1469a84327e1a6480d2252929bed7",
+    "semantic_hash": ""
+  },
+  "src/routes/healthRoutes.ts": {
+    "mtime": 1788635604.9678607,
+    "seen": 1793121396.6160455,
+    "ast_hash": "0697a49256dfac99d184605512f85a0b",
+    "semantic_hash": ""
+  },
+  "src/routes/opsRoutes.ts": {
+    "mtime": 1792509392.9265535,
+    "seen": 1793121396.6160455,
+    "ast_hash": "32041b46404ba63752d024a8dcc86515",
+    "semantic_hash": ""
+  },
+  "src/routes/orderRoutes.ts": {
+    "mtime": 1788635604.9448302,
+    "seen": 1793121396.6160455,
+    "ast_hash": "ff78f3509875c953a168f511d9a8b995",
+    "semantic_hash": ""
+  },
+  "src/routes/paymentRoutes.ts": {
+    "mtime": 1788635604.946835,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c5c9d69695bff8013c1405a1aaea8a08",
+    "semantic_hash": ""
+  },
+  "src/routes/productRoutes.ts": {
+    "mtime": 1792540027.8290856,
+    "seen": 1793121396.6160455,
+    "ast_hash": "480cc4c656f6d3fe6da2b4eb95b72f03",
+    "semantic_hash": ""
+  },
+  "src/schemas/address.schema.ts": {
+    "mtime": 1792531242.4891627,
+    "seen": 1793121396.6160455,
+    "ast_hash": "2128a2fb3b4371c672332d94c5090209",
+    "semantic_hash": ""
+  },
+  "src/schemas/agency.schema.ts": {
+    "mtime": 1793121317.435751,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e1da55ede3bc24453c8b574462dfe79d",
+    "semantic_hash": ""
+  },
+  "src/schemas/auth.schema.ts": {
+    "mtime": 1788634114.5722628,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8fc7efc50e6148257b4664bca746877b",
+    "semantic_hash": ""
+  },
+  "src/schemas/cart.schema.ts": {
+    "mtime": 1788634122.2405682,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c0343de1527df869033cad73f03e53b8",
+    "semantic_hash": ""
+  },
+  "src/schemas/order.schema.ts": {
+    "mtime": 1793121308.6089153,
+    "seen": 1793121396.6160455,
+    "ast_hash": "02e696a35d1cf1fab87b9871bd2da94a",
+    "semantic_hash": ""
+  },
+  "src/schemas/payment.schema.ts": {
+    "mtime": 1788634122.250006,
+    "seen": 1793121396.6160455,
+    "ast_hash": "9fef562a83f032ad739ecbf411b23f43",
+    "semantic_hash": ""
+  },
+  "src/schemas/product.schema.ts": {
+    "mtime": 1788634114.574793,
+    "seen": 1793121396.6160455,
+    "ast_hash": "007b3d588738c801f5254420162a9cfc",
+    "semantic_hash": ""
+  },
+  "src/server.ts": {
+    "mtime": 1788635943.5063126,
+    "seen": 1793121396.6160455,
+    "ast_hash": "7f4df821744178456362459fc24e036c",
+    "semantic_hash": ""
+  },
+  "src/services/adminService.ts": {
+    "mtime": 1792515273.8741267,
+    "seen": 1793121396.6160455,
+    "ast_hash": "9caefa1dc2bfdd979762d7722b45e8be",
+    "semantic_hash": ""
+  },
+  "src/services/agencyService.ts": {
+    "mtime": 1793121318.8516843,
+    "seen": 1793121396.6160455,
+    "ast_hash": "5e73819ba74c7a6d34818a3461677459",
+    "semantic_hash": ""
+  },
+  "src/services/authService.ts": {
+    "mtime": 1792506753.4779584,
+    "seen": 1793121396.6160455,
+    "ast_hash": "1c6c09b63c52559bdca18a66ab31d04c",
+    "semantic_hash": ""
+  },
+  "src/services/cartService.ts": {
+    "mtime": 1788634973.3155408,
+    "seen": 1793121396.6160455,
+    "ast_hash": "efdb69b86aff49c57b71ac822f9cbfee",
+    "semantic_hash": ""
+  },
+  "src/services/healthService.ts": {
+    "mtime": 1788635092.8192258,
+    "seen": 1793121396.6160455,
+    "ast_hash": "aaf93e1ea6c2477ded6fddaf6e894459",
+    "semantic_hash": ""
+  },
+  "src/services/orderService.ts": {
+    "mtime": 1793121290.091096,
+    "seen": 1793121396.6160455,
+    "ast_hash": "0dad81ccaf8a65834c1ccbe87215e874",
+    "semantic_hash": ""
+  },
+  "src/services/paymentService.ts": {
+    "mtime": 1792515570.1510623,
+    "seen": 1793121396.6160455,
+    "ast_hash": "417d411b1c92ff54da73f76c5d2c63c2",
+    "semantic_hash": ""
+  },
+  "src/services/pickupService.ts": {
+    "mtime": 1793121243.0237975,
+    "seen": 1793121396.6160455,
+    "ast_hash": "353e30a641cfed965f26b593d61f5dfb",
+    "semantic_hash": ""
+  },
+  "src/services/productService.ts": {
+    "mtime": 1788634873.059697,
+    "seen": 1793121396.6160455,
+    "ast_hash": "39fc2bdb2fceb09c32be1ed153d26d1d",
+    "semantic_hash": ""
+  },
+  "src/services/shippingService.ts": {
+    "mtime": 1789153506.6152859,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c01edc492d833fe0b88b209aef32b894",
+    "semantic_hash": ""
+  },
+  "src/types/index.ts": {
+    "mtime": 1793121222.0775435,
+    "seen": 1793121396.6160455,
+    "ast_hash": "02b96d5b7b0df2f2866b0943a620850a",
+    "semantic_hash": ""
+  },
+  "src/utils/decimal.ts": {
+    "mtime": 1788637124.754982,
+    "seen": 1793121396.6160455,
+    "ast_hash": "a1e2345790a7db898b72594b9ee4ff5d",
+    "semantic_hash": ""
+  },
+  "src/utils/fardo.ts": {
+    "mtime": 1788634001.6802542,
+    "seen": 1793121396.6160455,
+    "ast_hash": "618b4dbd090956ca0d9c9a096a73e08a",
+    "semantic_hash": ""
+  },
+  "src/utils/id.ts": {
+    "mtime": 1788634001.675725,
+    "seen": 1793121396.6160455,
+    "ast_hash": "be9dfc81605fee38b5d5105125b0bdc7",
+    "semantic_hash": ""
+  },
+  "src/utils/response.ts": {
+    "mtime": 1788634001.6873236,
+    "seen": 1793121396.6160455,
+    "ast_hash": "01c4bb41e729d2a1f92e985b7cbda87c",
+    "semantic_hash": ""
+  },
+  "tests/integration/api.test.ts": {
+    "mtime": 1788636281.3388171,
+    "seen": 1793121396.6160455,
+    "ast_hash": "a6f47efab63bf315519681d339c63945",
+    "semantic_hash": ""
+  },
+  "tests/unit/decimal.test.ts": {
+    "mtime": 1788636136.88784,
+    "seen": 1793121396.6160455,
+    "ast_hash": "4e128b6c9040268e22a0ad24f6eb058f",
+    "semantic_hash": ""
+  },
+  "tests/unit/fardo.test.ts": {
+    "mtime": 1788636136.889839,
+    "seen": 1793121396.6160455,
+    "ast_hash": "d2b2b4d0a7893edf47964f11dc6fe1c6",
+    "semantic_hash": ""
+  },
+  "tests/unit/paymentService.test.ts": {
+    "mtime": 1792515684.8302143,
+    "seen": 1793121396.6160455,
+    "ast_hash": "9c0ac85c103cf33eec3939239fab2f39",
+    "semantic_hash": ""
+  },
+  "tests/unit/productRules.test.ts": {
+    "mtime": 1788636281.3327572,
+    "seen": 1793121396.6160455,
+    "ast_hash": "846d0b69f751ae2aade615068c644a14",
+    "semantic_hash": ""
+  },
+  "tsconfig.json": {
+    "mtime": 1788636523.182767,
+    "seen": 1793121396.6160455,
+    "ast_hash": "45a5e4119b027ce4b1cd3494ec4bd414",
+    "semantic_hash": ""
+  },
+  "vercel.json": {
+    "mtime": 1791334088.2653935,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c2d60c3d2878d04de4dd60f7e56a58d2",
+    "semantic_hash": ""
+  },
+  "vitest.config.ts": {
+    "mtime": 1788633409.313011,
+    "seen": 1793121396.6160455,
+    "ast_hash": "0a509f473622a455d19f888d2c44e7b2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/CHANGELOG.md": {
+    "mtime": 1788639361.3342686,
+    "seen": 1793121396.6160455,
+    "ast_hash": "fdd0ba418e6744556f0029ffb76711b1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/SKILL.md": {
+    "mtime": 1788639361.335261,
+    "seen": 1793121396.6160455,
+    "ast_hash": "845c64575b6d28856ea6a9735a372225",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/_contributing.md": {
+    "mtime": 1788639361.336264,
+    "seen": 1793121396.6160455,
+    "ast_hash": "32c800fa6621705288dc651da22c9366",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/_sections.md": {
+    "mtime": 1788639361.3372612,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8547fba7fd9fae3b6be916c6f55b0f62",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/_template.md": {
+    "mtime": 1788639361.3382623,
+    "seen": 1793121396.6160455,
+    "ast_hash": "74ec7e2bdd6c8ddbb354fcceec038bc2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/advanced-full-text-search.md": {
+    "mtime": 1788639361.3392637,
+    "seen": 1793121396.6160455,
+    "ast_hash": "327f8367de51b0982b963f2928184c35",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/advanced-jsonb-indexing.md": {
+    "mtime": 1788639361.3402631,
+    "seen": 1793121396.6160455,
+    "ast_hash": "413ba907ff4408d6fd3545f839101ebf",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/conn-idle-timeout.md": {
+    "mtime": 1788639361.3412642,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8bbe8b609d5241351672cefc19036db6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/conn-limits.md": {
+    "mtime": 1788639361.3422601,
+    "seen": 1793121396.6160455,
+    "ast_hash": "661b3efcf0e35136352b3923ff265d5c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/conn-pooling.md": {
+    "mtime": 1788639361.343262,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c90dab7d0ab47443b41f17d5bc9f04b3",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/conn-prepared-statements.md": {
+    "mtime": 1788639361.343262,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b53eb9dea11d6da338a8b6f9e67a3622",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/data-batch-inserts.md": {
+    "mtime": 1788639361.3442647,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6801a3a2d414dfd6a4c79970a37e795d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/data-n-plus-one.md": {
+    "mtime": 1788639361.3452637,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c3ed0702a116d654602120bd5cd7713e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/data-pagination.md": {
+    "mtime": 1788639361.3462636,
+    "seen": 1793121396.6160455,
+    "ast_hash": "59be210a420d34780949ce16d5b4a8d5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/data-upsert.md": {
+    "mtime": 1788639361.347195,
+    "seen": 1793121396.6160455,
+    "ast_hash": "3ae132bce8b5368e1e4a426d55ca4567",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/lock-advisory.md": {
+    "mtime": 1788639361.3477075,
+    "seen": 1793121396.6160455,
+    "ast_hash": "ff943eb307d8b6e12cc6ab2bcb6e2d18",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/lock-deadlock-prevention.md": {
+    "mtime": 1788639361.3487234,
+    "seen": 1793121396.6160455,
+    "ast_hash": "685b04bcae3a0720e84f1507d243e959",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/lock-short-transactions.md": {
+    "mtime": 1788639361.349723,
+    "seen": 1793121396.6160455,
+    "ast_hash": "3c947d59e0359f3b236bf2ad1da52c61",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/lock-skip-locked.md": {
+    "mtime": 1788639361.3507211,
+    "seen": 1793121396.6160455,
+    "ast_hash": "098d38542f44b656aa55923f06db74c1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/monitor-explain-analyze.md": {
+    "mtime": 1788639361.351725,
+    "seen": 1793121396.6160455,
+    "ast_hash": "1fd19c373a0ff272129edd215a96e3a1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/monitor-pg-stat-statements.md": {
+    "mtime": 1788639361.352721,
+    "seen": 1793121396.6160455,
+    "ast_hash": "2f0cab7f72ad9dfe2cba469aaaacc733",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/monitor-vacuum-analyze.md": {
+    "mtime": 1788639361.363741,
+    "seen": 1793121396.6160455,
+    "ast_hash": "25e738451079707ac54d21364b5538e1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/query-composite-indexes.md": {
+    "mtime": 1788639361.3718166,
+    "seen": 1793121396.6160455,
+    "ast_hash": "5017f09940ed04b5b3ad836e426d9084",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/query-covering-indexes.md": {
+    "mtime": 1788639361.3723392,
+    "seen": 1793121396.6160455,
+    "ast_hash": "fd05c38771229d97f2d4065d0af0df70",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/query-index-types.md": {
+    "mtime": 1788639361.3733537,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e2395c6ef69ea2f147c9ab1d18c7f879",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/query-missing-indexes.md": {
+    "mtime": 1788639361.3733537,
+    "seen": 1793121396.6160455,
+    "ast_hash": "786767ec677862bad060fc1b4ae0a94f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/query-partial-indexes.md": {
+    "mtime": 1788639361.3748648,
+    "seen": 1793121396.6160455,
+    "ast_hash": "249d8fccca68c332e946b499531f21d8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-constraints.md": {
+    "mtime": 1788639361.3767538,
+    "seen": 1793121396.6160455,
+    "ast_hash": "476ca283cfda6c5517d94c25c41de775",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-data-types.md": {
+    "mtime": 1788639361.3772702,
+    "seen": 1793121396.6160455,
+    "ast_hash": "cd65e34969ebce0bce84f622f5072477",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-foreign-key-indexes.md": {
+    "mtime": 1788639361.378285,
+    "seen": 1793121396.6160455,
+    "ast_hash": "8b99b21a07cadd2d85c6c16f416b5464",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-lowercase-identifiers.md": {
+    "mtime": 1788639361.3792853,
+    "seen": 1793121396.6160455,
+    "ast_hash": "632ea53a0da6fe7651e354f3744d998e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-partitioning.md": {
+    "mtime": 1788639361.380284,
+    "seen": 1793121396.6160455,
+    "ast_hash": "0f2fe9016bf9aa79dd30d7d6a4a03358",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/schema-primary-keys.md": {
+    "mtime": 1788639361.3812854,
+    "seen": 1793121396.6160455,
+    "ast_hash": "a732b1a95b6c231d47af14b715c6b9b0",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/security-privileges.md": {
+    "mtime": 1788639361.382285,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e6fbc325f8f3af1cab3e1cb99d9f146a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/security-rls-basics.md": {
+    "mtime": 1788639361.3832867,
+    "seen": 1793121396.6160455,
+    "ast_hash": "82ee8b214f39f78c9e88061b6f890508",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase-postgres-best-practices/references/security-rls-performance.md": {
+    "mtime": 1788639361.3842838,
+    "seen": 1793121396.6160455,
+    "ast_hash": "ad2ccf01dfd325527b18256c3e25b842",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase/CHANGELOG.md": {
+    "mtime": 1788639361.3862834,
+    "seen": 1793121396.6160455,
+    "ast_hash": "2f4622961a8c9f3a3b2c40086309447b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase/SKILL.md": {
+    "mtime": 1788639361.3872962,
+    "seen": 1793121396.6160455,
+    "ast_hash": "7b96fab7659e7953872489fcadff75a7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase/assets/feedback-issue-template.md": {
+    "mtime": 1788639361.3882835,
+    "seen": 1793121396.6160455,
+    "ast_hash": "e2c8b4f1a20e46315dd7609540d9b8d4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/supabase/references/skill-feedback.md": {
+    "mtime": 1788639361.3902822,
+    "seen": 1793121396.6160455,
+    "ast_hash": "c9fa098e2ec8bdce9d6a0f8a64d2c6c0",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1788637755.3395011,
+    "seen": 1793121396.6160455,
+    "ast_hash": "3710d8acc8d29d7af7c2e5ba3cc3f646",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1788633482.6636515,
+    "seen": 1793121396.6160455,
+    "ast_hash": "2d169dcb2691eacb34fb441b5ad80324",
+    "semantic_hash": ""
+  },
+  "src/public/ops/index.html": {
+    "mtime": 1792509392.925548,
+    "seen": 1793121396.6160455,
+    "ast_hash": "b40b684e52ae21e338553e7fd92e6a75",
+    "semantic_hash": ""
+  },
+  "src/public/products/Copo Transparente com Lacre Prateado.png": {
+    "mtime": 1791243235.8996482,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6a7b4209c30722aa93250416e2568665",
+    "semantic_hash": ""
+  },
+  "src/public/products/Garrafa PET Cristalina com Borbulhas 510ml gas.png": {
+    "mtime": 1791243573.5255113,
+    "seen": 1793121396.6160455,
+    "ast_hash": "f341043d3ffecc0414695e0169f0fd9b",
+    "semantic_hash": ""
+  },
+  "src/public/products/Garrafa de \u00e1gua 510ml.png": {
+    "mtime": 1791243430.1396873,
+    "seen": 1793121396.6160455,
+    "ast_hash": "7219b6d09397ba0c054fb1734f2c2c64",
+    "semantic_hash": ""
+  },
+  "src/public/products/copo-200ml.png": {
+    "mtime": 1791243235.8996482,
+    "seen": 1793121396.6160455,
+    "ast_hash": "6a7b4209c30722aa93250416e2568665",
+    "semantic_hash": ""
+  },
+  "src/public/products/garrafa-510ml.png": {
+    "mtime": 1791243430.1396873,
+    "seen": 1793121396.6160455,
+    "ast_hash": "7219b6d09397ba0c054fb1734f2c2c64",
+    "semantic_hash": ""
+  },
+  "src/public/products/garrafa-gas-510ml.png": {
+    "mtime": 1791243573.5255113,
+    "seen": 1793121396.6160455,
+    "ast_hash": "f341043d3ffecc0414695e0169f0fd9b",
+    "semantic_hash": ""
+  },
+  "src/public/products/water-jug-20l.png": {
+    "mtime": 1788311763.6143558,
+    "seen": 1793121396.6160455,
+    "ast_hash": "9a5f7270332951c3443f17c1c12a9a13",
+    "semantic_hash": ""
+  }
+}

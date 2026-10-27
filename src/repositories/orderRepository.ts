@@ -1,6 +1,9 @@
-import { Order, OrderItem, OrderStatus } from '../types/index.js';
+import { Order, OrderItem, OrderStatus, FulfillmentType } from '../types/index.js';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 import { calculatePackage } from '../utils/fardo.js';
+
+const ORDER_DETAIL_SELECT =
+  '*, items:order_items(*), address:addresses(*), agency:agencies(*)';
 
 let memoryOrders: Order[] = [];
 let memoryOrderItems: OrderItem[] = [];
@@ -13,7 +16,7 @@ export class OrderRepository {
       try {
         const { data, error } = await supabaseAdmin
           .from('orders')
-          .select('*, items:order_items(*), address:addresses(*)')
+          .select(ORDER_DETAIL_SELECT)
           .eq('idempotency_key', key)
           .maybeSingle();
 
@@ -35,7 +38,7 @@ export class OrderRepository {
       try {
         let query = supabaseAdmin
           .from('orders')
-          .select('*, items:order_items(*), address:addresses(*)')
+          .select(ORDER_DETAIL_SELECT)
           .eq('id', id);
 
         if (userId) query = query.eq('user_id', userId);
@@ -56,7 +59,7 @@ export class OrderRepository {
 
   async findByUserId(
     userId: string,
-    options?: { page?: number; limit?: number; status?: OrderStatus }
+    options?: { page?: number; limit?: number; status?: OrderStatus; fulfillment_type?: FulfillmentType }
   ): Promise<{ orders: Order[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
@@ -67,11 +70,14 @@ export class OrderRepository {
       try {
         let query = supabaseAdmin
           .from('orders')
-          .select('*, items:order_items(*), address:addresses(*)', { count: 'exact' })
+          .select(ORDER_DETAIL_SELECT, { count: 'exact' })
           .eq('user_id', userId);
 
         if (options?.status) {
           query = query.eq('status', options.status);
+        }
+        if (options?.fulfillment_type) {
+          query = query.eq('fulfillment_type', options.fulfillment_type);
         }
 
         const { data, count, error } = await query
@@ -93,6 +99,9 @@ export class OrderRepository {
     if (options?.status) {
       filtered = filtered.filter((o) => o.status === options.status);
     }
+    if (options?.fulfillment_type) {
+      filtered = filtered.filter((o) => o.fulfillment_type === options.fulfillment_type);
+    }
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const total = filtered.length;
@@ -104,6 +113,7 @@ export class OrderRepository {
     page?: number;
     limit?: number;
     status?: OrderStatus;
+    fulfillment_type?: FulfillmentType;
     from?: string;
     to?: string;
   }): Promise<{ orders: Order[]; total: number }> {
@@ -116,10 +126,13 @@ export class OrderRepository {
       try {
         let query = supabaseAdmin
           .from('orders')
-          .select('*, items:order_items(*), address:addresses(*)', { count: 'exact' });
+          .select(ORDER_DETAIL_SELECT, { count: 'exact' });
 
         if (options?.status) {
           query = query.eq('status', options.status);
+        }
+        if (options?.fulfillment_type) {
+          query = query.eq('fulfillment_type', options.fulfillment_type);
         }
         if (options?.from) query = query.gte('created_at', options.from);
         if (options?.to) query = query.lt('created_at', options.to);
@@ -142,6 +155,9 @@ export class OrderRepository {
     let filtered = [...memoryOrders];
     if (options?.status) {
       filtered = filtered.filter((o) => o.status === options.status);
+    }
+    if (options?.fulfillment_type) {
+      filtered = filtered.filter((o) => o.fulfillment_type === options.fulfillment_type);
     }
     if (options?.from) filtered = filtered.filter((o) => o.created_at >= options.from!);
     if (options?.to) filtered = filtered.filter((o) => o.created_at < options.to!);
@@ -179,6 +195,13 @@ export class OrderRepository {
           id: newOrder.id,
           user_id: newOrder.user_id,
           address_id: newOrder.address_id,
+          fulfillment_type: newOrder.fulfillment_type,
+          agency_id: newOrder.agency_id,
+          pickup_contact_name: newOrder.pickup_contact_name,
+          pickup_contact_phone: newOrder.pickup_contact_phone,
+          pickup_scheduled_at: newOrder.pickup_scheduled_at,
+          ready_for_pickup_at: newOrder.ready_for_pickup_at,
+          picked_up_at: newOrder.picked_up_at,
           status: newOrder.status,
           subtotal: newOrder.subtotal,
           shipping_fee: newOrder.shipping_fee,
@@ -221,14 +244,23 @@ export class OrderRepository {
 
   async updateStatus(id: string, status: OrderStatus): Promise<Order | null> {
     const now = new Date().toISOString();
+    const existing = await this.findById(id);
+    const patch: Record<string, unknown> = { status, updated_at: now };
+
+    if (status === 'ready_for_pickup') {
+      patch.ready_for_pickup_at = now;
+    }
+    if (status === 'delivered' && existing?.fulfillment_type === 'pickup') {
+      patch.picked_up_at = now;
+    }
 
     if (isSupabaseConfigured()) {
       try {
         const { data, error } = await supabaseAdmin
           .from('orders')
-          .update({ status, updated_at: now })
+          .update(patch)
           .eq('id', id)
-          .select('*, items:order_items(*), address:addresses(*)')
+          .select(ORDER_DETAIL_SELECT)
           .single();
 
         if (!error && data) return this.mapOrder(data);
@@ -242,6 +274,12 @@ export class OrderRepository {
 
     order.status = status;
     order.updated_at = now;
+    if (status === 'ready_for_pickup') {
+      order.ready_for_pickup_at = now;
+    }
+    if (status === 'delivered' && order.fulfillment_type === 'pickup') {
+      order.picked_up_at = now;
+    }
     return this.enrichMemoryOrder(order);
   }
 
@@ -254,7 +292,7 @@ export class OrderRepository {
           .from('orders')
           .update({ ...updates, updated_at: now })
           .eq('id', id)
-          .select('*, items:order_items(*), address:addresses(*)')
+          .select(ORDER_DETAIL_SELECT)
           .single();
 
         if (!error && data) return this.mapOrder(data);
@@ -283,8 +321,18 @@ export class OrderRepository {
       }
     }
 
+    const agency = data.agency || data.agencies || null;
+
     return {
       ...data,
+      fulfillment_type: (data.fulfillment_type as FulfillmentType) || 'delivery',
+      agency_id: data.agency_id ?? null,
+      pickup_contact_name: data.pickup_contact_name ?? null,
+      pickup_contact_phone: data.pickup_contact_phone ?? null,
+      pickup_scheduled_at: data.pickup_scheduled_at ?? null,
+      ready_for_pickup_at: data.ready_for_pickup_at ?? null,
+      picked_up_at: data.picked_up_at ?? null,
+      agency: agency || undefined,
       latitude: lat,
       longitude: lng,
       subtotal: Number(data.subtotal),
