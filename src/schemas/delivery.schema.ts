@@ -24,6 +24,8 @@ export const createDriverSchema = z.object({
   allowed_category_ids: z.array(z.string().uuid()).optional(),
   region_ids: z.array(z.string().uuid()).optional(),
   is_active: z.boolean().optional(),
+  /** Confirma vincular e-mail já cadastrado (admin ou outro não-cliente) como entregador. */
+  promote_existing: z.boolean().optional(),
 });
 
 export const updateDriverSchema = createDriverSchema

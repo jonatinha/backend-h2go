@@ -12,7 +12,10 @@ import {
   deliveryDriverRepository,
   deliveryRegionRepository,
 } from '../repositories/deliveryRepository.js';
-import { deliveryDriverAdminService } from '../services/deliveryDriverAdminService.js';
+import {
+  deliveryDriverAdminService,
+  DriverAdminError,
+} from '../services/deliveryDriverAdminService.js';
 
 export class DeliveryAdminController {
   async listDrivers(request: FastifyRequest, reply: FastifyReply) {
@@ -44,6 +47,15 @@ export class DeliveryAdminController {
       const driver = await deliveryDriverAdminService.createDriver(body);
       return reply.status(201).send(formatSuccess(driver));
     } catch (e) {
+      if (e instanceof DriverAdminError) {
+        const status =
+          e.code === 'PROMOTE_DRIVER'
+            ? 409
+            : e.code === 'ALREADY_DRIVER'
+              ? 409
+              : 400;
+        return reply.status(status).send(formatError(e.code, e.message, request.requestId));
+      }
       const message = e instanceof Error ? e.message : 'Erro ao criar entregador.';
       return reply.status(400).send(formatError('CREATE_DRIVER_FAILED', message, request.requestId));
     }
