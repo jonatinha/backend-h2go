@@ -116,6 +116,8 @@ export class OrderRepository {
     fulfillment_type?: FulfillmentType;
     from?: string;
     to?: string;
+    driver_id?: string;
+    unassigned_only?: boolean;
   }): Promise<{ orders: Order[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
@@ -136,6 +138,8 @@ export class OrderRepository {
         }
         if (options?.from) query = query.gte('created_at', options.from);
         if (options?.to) query = query.lt('created_at', options.to);
+        if (options?.driver_id) query = query.eq('driver_id', options.driver_id);
+        if (options?.unassigned_only) query = query.is('driver_id', null);
 
         const { data, count, error } = await query
           .order('created_at', { ascending: false })
@@ -161,6 +165,12 @@ export class OrderRepository {
     }
     if (options?.from) filtered = filtered.filter((o) => o.created_at >= options.from!);
     if (options?.to) filtered = filtered.filter((o) => o.created_at < options.to!);
+    if (options?.driver_id) {
+      filtered = filtered.filter((o) => o.driver_id === options.driver_id);
+    }
+    if (options?.unassigned_only) {
+      filtered = filtered.filter((o) => !o.driver_id);
+    }
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const total = filtered.length;
@@ -333,6 +343,10 @@ export class OrderRepository {
       ready_for_pickup_at: data.ready_for_pickup_at ?? null,
       picked_up_at: data.picked_up_at ?? null,
       agency: agency || undefined,
+      driver_id: data.driver_id ?? null,
+      accepted_at: data.accepted_at ?? null,
+      delivery_started_at: data.delivery_started_at ?? null,
+      delivery_completed_at: data.delivery_completed_at ?? null,
       latitude: lat,
       longitude: lng,
       subtotal: Number(data.subtotal),

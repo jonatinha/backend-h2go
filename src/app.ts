@@ -24,6 +24,7 @@ import { opsRoutes } from './routes/opsRoutes.js';
 import { healthRoutes } from './routes/healthRoutes.js';
 import { agencyRoutes } from './routes/agencyRoutes.js';
 import { mapRoutes } from './routes/mapRoutes.js';
+import { driverRoutes } from './routes/driverRoutes.js';
 import { formatError } from './utils/response.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -98,6 +99,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await apiV1.register(paymentRoutes);
       await apiV1.register(adminRoutes);
       await apiV1.register(mapRoutes);
+      await apiV1.register(driverRoutes);
     },
     { prefix: env.API_PREFIX }
   );

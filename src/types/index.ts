@@ -1,4 +1,83 @@
-export type UserRole = 'customer' | 'admin';
+export type UserRole = 'customer' | 'admin' | 'delivery';
+
+export type DeliveryBoundaryType = 'polygon' | 'radius' | 'manual';
+
+export type DeliveryAssignmentStatus =
+  | 'accepted'
+  | 'en_route_pickup'
+  | 'picked_up'
+  | 'en_route_delivery'
+  | 'completed'
+  | 'cancelled';
+
+export interface DeliveryDriver {
+  id: string;
+  profile_id: string;
+  vehicle_type: string | null;
+  vehicle_brand: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  vehicle_plate: string | null;
+  avatar_url: string | null;
+  max_distance_km: number | null;
+  max_units: number | null;
+  allowed_category_ids: string[];
+  rules_override: Record<string, unknown>;
+  deliveries_count: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  profile?: UserProfile;
+  region_ids?: string[];
+  regions?: DeliveryRegion[];
+}
+
+export interface DeliveryRegion {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  boundary_type: DeliveryBoundaryType;
+  geometry: Record<string, unknown>;
+  center_lat: number | null;
+  center_lng: number | null;
+  radius_km: number | null;
+  neighborhoods: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryAssignment {
+  id: string;
+  order_id: string;
+  driver_id: string;
+  status: DeliveryAssignmentStatus;
+  accepted_at: string;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  order?: Order;
+}
+
+export interface DriverRunSummary {
+  order_id: string;
+  order_number: string;
+  customer_name: string;
+  address_text: string;
+  neighborhood: string;
+  region_name: string | null;
+  distance_km: number | null;
+  product_summary: string;
+  total_units: number;
+  shipping_fee: number;
+  total: number;
+  created_at: string;
+  status: OrderStatus;
+  assignment_status?: DeliveryAssignmentStatus;
+}
 
 export interface UserProfile {
   id: string;
@@ -166,10 +245,14 @@ export interface Order {
   currency: string;
   notes: string | null;
   idempotency_key: string | null;
+  driver_id?: string | null;
   driver_name?: string | null;
   driver_phone?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  accepted_at?: string | null;
+  delivery_started_at?: string | null;
+  delivery_completed_at?: string | null;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];
@@ -267,6 +350,7 @@ declare module 'fastify' {
       email: string;
       role: UserRole;
       full_name?: string | null;
+      driver_id?: string;
     };
   }
 }

@@ -118,3 +118,24 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
     );
   }
 }
+
+export async function requireDriver(request: FastifyRequest, reply: FastifyReply) {
+  await requireAuth(request, reply);
+  if (reply.sent) return;
+
+  if (!request.user || request.user.role !== 'delivery') {
+    return reply.status(403).send(
+      formatError('FORBIDDEN', 'Acesso exclusivo para entregadores.', request.requestId || 'req_driver')
+    );
+  }
+
+  const { deliveryDriverRepository } = await import('../repositories/deliveryRepository.js');
+  const driver = await deliveryDriverRepository.findByProfileId(request.user.id);
+  if (!driver || !driver.is_active) {
+    return reply.status(403).send(
+      formatError('DRIVER_INACTIVE', 'Conta de entregador inativa.', request.requestId || 'req_driver')
+    );
+  }
+
+  request.user.driver_id = driver.id;
+}

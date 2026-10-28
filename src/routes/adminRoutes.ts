@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { adminController } from '../controllers/adminController.js';
 import { agencyController } from '../controllers/agencyController.js';
+import { deliveryAdminController } from '../controllers/deliveryAdminController.js';
 import { requireAdmin } from '../middlewares/auth.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -26,6 +27,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.post('/admin/agencies', agencyController.create.bind(agencyController));
   fastify.patch('/admin/agencies/:id', agencyController.update.bind(agencyController));
   fastify.delete('/admin/agencies/:id', agencyController.delete.bind(agencyController));
+
+  // Entregadores & regiões
+  fastify.get('/admin/drivers', deliveryAdminController.listDrivers.bind(deliveryAdminController));
+  fastify.get('/admin/drivers/:id', deliveryAdminController.getDriver.bind(deliveryAdminController));
+  fastify.post('/admin/drivers', deliveryAdminController.createDriver.bind(deliveryAdminController));
+  fastify.patch('/admin/drivers/:id', deliveryAdminController.updateDriver.bind(deliveryAdminController));
+  fastify.post('/admin/drivers/:id/reset-password', deliveryAdminController.resetPassword.bind(deliveryAdminController));
+
+  fastify.get('/admin/delivery-regions', deliveryAdminController.listRegions.bind(deliveryAdminController));
+  fastify.post('/admin/delivery-regions', deliveryAdminController.createRegion.bind(deliveryAdminController));
+  fastify.patch('/admin/delivery-regions/:id', deliveryAdminController.updateRegion.bind(deliveryAdminController));
+  fastify.delete('/admin/delivery-regions/:id', deliveryAdminController.deleteRegion.bind(deliveryAdminController));
 
   // Products (Catálogo de Água)
   fastify.get('/admin/products', adminController.listProducts.bind(adminController));

@@ -38,3 +38,24 @@ export async function reverseGeocode(
   recordReverseGeocodeUsage(clientIp);
   return { place_name: feature.place_name, center: feature.center };
 }
+
+const DIRECTIONS_BASE = 'https://api.mapbox.com/directions/v5/mapbox/driving';
+
+/** Distância de rota em km; retorna null se Mapbox indisponível ou rota não encontrada. */
+export async function getDrivingDistanceKm(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): Promise<number | null> {
+  const token = env.MAPBOX_ACCESS_TOKEN?.trim();
+  if (!token) return null;
+
+  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
+  const url = `${DIRECTIONS_BASE}/${coords}?overview=false&access_token=${encodeURIComponent(token)}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+
+  const body = (await res.json()) as { routes?: Array<{ distance?: number }> };
+  const meters = body.routes?.[0]?.distance;
+  if (meters == null) return null;
+  return meters / 1000;
+}
