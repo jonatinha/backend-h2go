@@ -9,6 +9,7 @@ import { pickupService } from './pickupService.js';
 import { productService } from './productService.js';
 import { addMoney, multiplyMoney } from '../utils/decimal.js';
 import { createDeliveryQrToken, DELIVERY_QR_PREFIX } from '../utils/deliveryQr.js';
+import { autoAcceptService } from './autoAcceptService.js';
 
 export type CreateOrderPayload = {
   fulfillment_type?: FulfillmentType;
@@ -163,8 +164,10 @@ export class OrderService {
       metadata: { notes: input.notes || null, fulfillment_type: 'delivery' },
     });
 
+    const acceptedOrder = await autoAcceptService.applyIfEnabled(order);
+
     return {
-      ...order,
+      ...acceptedOrder,
       address,
       payment,
     };
@@ -247,8 +250,10 @@ export class OrderService {
       },
     });
 
+    const acceptedOrder = await autoAcceptService.applyIfEnabled(order);
+
     return {
-      ...order,
+      ...acceptedOrder,
       agency,
       payment,
     };
