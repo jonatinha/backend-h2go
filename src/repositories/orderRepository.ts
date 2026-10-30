@@ -1,6 +1,7 @@
 import { Order, OrderItem, OrderStatus, FulfillmentType } from '../types/index.js';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 import { calculatePackage } from '../utils/fardo.js';
+import { createDeliveryQrToken } from '../utils/deliveryQr.js';
 
 const ORDER_DETAIL_SELECT =
   '*, items:order_items(*), address:addresses(*), agency:agencies(*)';
@@ -45,7 +46,7 @@ export class OrderRepository {
 
         const { data, error } = await query.maybeSingle();
         if (!error && data) {
-          return this.mapOrder(data);
+          return this.ensureDeliveryQrToken(this.mapOrder(data));
         }
       } catch (err) {
         console.warn('Supabase order findById error:', err);
@@ -54,7 +55,7 @@ export class OrderRepository {
 
     const found = memoryOrders.find((o) => o.id === id && (!userId || o.user_id === userId));
     if (!found) return null;
-    return this.enrichMemoryOrder(found);
+    return this.ensureDeliveryQrToken(this.enrichMemoryOrder(found));
   }
 
   async findByDeliveryQrToken(token: string): Promise<Order | null> {
@@ -109,8 +110,9 @@ export class OrderRepository {
           .range(from, to);
 
         if (!error && data) {
+          const orders = await Promise.all(data.map((row) => this.ensureDeliveryQrToken(this.mapOrder(row))));
           return {
-            orders: data.map(this.mapOrder),
+            orders,
             total: count || data.length,
           };
         }
@@ -129,7 +131,9 @@ export class OrderRepository {
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const total = filtered.length;
-    const paginated = filtered.slice(from, to + 1).map(this.enrichMemoryOrder);
+    const paginated = await Promise.all(
+      filtered.slice(from, to + 1).map((o) => this.ensureDeliveryQrToken(this.enrichMemoryOrder(o)))
+    );
     return { orders: paginated, total };
   }
 
@@ -249,32 +253,41 @@ export class OrderRepository {
           longitude: newOrder.longitude ?? null,
         });
 
-        if (!orderError) {
-          await supabaseAdmin.from('order_items').insert(
-            newItems.map((i) => ({
-              id: i.id,
-              order_id: i.order_id,
-              product_id: i.product_id,
-              product_name: i.product_name,
-              sku: i.sku,
-              quantity: i.quantity,
-              unit_price: i.unit_price,
-              subtotal: i.subtotal,
-            }))
-          );
+        if (orderError) {
+          throw new Error(`ORDER_PERSIST_FAILED: ${orderError.message}`);
+        }
+
+        const { error: itemsError } = await supabaseAdmin.from('order_items').insert(
+          newItems.map((i) => ({
+            id: i.id,
+            order_id: i.order_id,
+            product_id: i.product_id,
+            product_name: i.product_name,
+            sku: i.sku,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            subtotal: i.subtotal,
+          }))
+        );
+        if (itemsError) {
+          throw new Error(`ORDER_ITEMS_PERSIST_FAILED: ${itemsError.message}`);
         }
       } catch (err) {
-        console.warn('Supabase createOrder error, storing locally:', err);
+        if (err instanceof Error && err.message.startsWith('ORDER_')) {
+          throw err;
+        }
+        console.warn('Supabase createOrder error:', err);
+        throw new Error('ORDER_PERSIST_FAILED: Falha ao salvar pedido no banco.');
       }
     }
 
     memoryOrders.push(newOrder);
     memoryOrderItems.push(...newItems);
 
-    return {
+    return this.ensureDeliveryQrToken({
       ...newOrder,
       items: newItems,
-    };
+    });
   }
 
   async updateStatus(id: string, status: OrderStatus): Promise<Order | null> {
@@ -399,6 +412,30 @@ export class OrderRepository {
       ...order,
       items,
     };
+  }
+
+  private hasValidDeliveryQrToken(order: Order): boolean {
+    return typeof order.delivery_qr_token === 'string' && order.delivery_qr_token.length >= 16;
+  }
+
+  async ensureDeliveryQrToken(order: Order): Promise<Order> {
+    if (this.hasValidDeliveryQrToken(order)) {
+      return order;
+    }
+
+    const token = createDeliveryQrToken();
+    const updated = await this.updateOrder(order.id, { delivery_qr_token: token });
+    if (updated) {
+      return updated;
+    }
+
+    const memory = memoryOrders.find((o) => o.id === order.id);
+    if (memory) {
+      memory.delivery_qr_token = token;
+      return this.enrichMemoryOrder(memory);
+    }
+
+    return { ...order, delivery_qr_token: token };
   }
 }
 

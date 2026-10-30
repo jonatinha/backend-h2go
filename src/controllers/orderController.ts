@@ -17,6 +17,7 @@ export class OrderController {
       );
     }
 
+    try {
     const body = createOrderSchema.parse(request.body);
     const idempotencyKey = (request.headers['idempotency-key'] as string) || undefined;
 
@@ -36,6 +37,14 @@ export class OrderController {
     );
 
     return reply.status(201).send(formatSuccess(order));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Falha ao criar pedido.';
+    const code = message.split(':')[0] || 'CREATE_ORDER_FAILED';
+    const status = code === 'ORDER_PERSIST_FAILED' || code === 'ORDER_ITEMS_PERSIST_FAILED' ? 503 : 400;
+    return reply.status(status).send(
+      formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+    );
+    }
   }
 
   async list(request: FastifyRequest, reply: FastifyReply) {
