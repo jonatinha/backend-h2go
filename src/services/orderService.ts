@@ -8,7 +8,7 @@ import { shippingService } from './shippingService.js';
 import { pickupService } from './pickupService.js';
 import { productService } from './productService.js';
 import { addMoney, multiplyMoney } from '../utils/decimal.js';
-import { createDeliveryQrToken } from '../utils/deliveryQr.js';
+import { createDeliveryQrToken, DELIVERY_QR_PREFIX } from '../utils/deliveryQr.js';
 
 export type CreateOrderPayload = {
   fulfillment_type?: FulfillmentType;
@@ -256,6 +256,30 @@ export class OrderService {
 
   async getOrderById(orderId: string, userId?: string): Promise<Order | null> {
     return orderRepository.findById(orderId, userId);
+  }
+
+  async getDeliveryQrForCustomer(
+    orderId: string,
+    userId: string
+  ): Promise<{ order_id: string; delivery_qr_token: string; qr_payload: string }> {
+    const order = await orderRepository.findById(orderId, userId);
+    if (!order) {
+      throw new Error('ORDER_NOT_FOUND: Pedido não encontrado.');
+    }
+    if (order.status === 'cancelled') {
+      throw new Error('ORDER_CANCELLED: Pedido cancelado.');
+    }
+
+    const withToken = await orderRepository.ensureDeliveryQrToken(order);
+    if (!withToken.delivery_qr_token) {
+      throw new Error('QR_UNAVAILABLE: Não foi possível gerar o QR deste pedido.');
+    }
+
+    return {
+      order_id: withToken.id,
+      delivery_qr_token: withToken.delivery_qr_token,
+      qr_payload: `${DELIVERY_QR_PREFIX}${withToken.delivery_qr_token}`,
+    };
   }
 
   async listUserOrders(

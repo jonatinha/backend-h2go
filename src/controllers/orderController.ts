@@ -87,6 +87,29 @@ export class OrderController {
     return reply.send(formatSuccess(payload));
   }
 
+  async getDeliveryQr(request: FastifyRequest, reply: FastifyReply) {
+    if (!request.user) {
+      return reply.status(401).send(
+        formatError('UNAUTHORIZED', 'Não autenticado', request.requestId)
+      );
+    }
+
+    const { id } = orderIdParamSchema.parse(request.params);
+
+    try {
+      const payload = await orderService.getDeliveryQrForCustomer(id, request.user.id);
+      return reply.send(formatSuccess(payload));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível obter o QR.';
+      const code = message.split(':')[0] || 'QR_ERROR';
+      const status =
+        code === 'ORDER_NOT_FOUND' ? 404 : code === 'ORDER_CANCELLED' ? 409 : 400;
+      return reply.status(status).send(
+        formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+      );
+    }
+  }
+
   async cancel(request: FastifyRequest, reply: FastifyReply) {
     if (!request.user) {
       return reply.status(401).send(

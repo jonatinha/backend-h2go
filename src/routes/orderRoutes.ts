@@ -7,6 +7,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
   fastify.post('/orders', orderController.create.bind(orderController));
   fastify.get('/orders', orderController.list.bind(orderController));
+  fastify.get('/orders/:id/delivery-qr', orderController.getDeliveryQr.bind(orderController));
   fastify.get('/orders/:id', orderController.getById.bind(orderController));
   fastify.post('/orders/:id/cancel', orderController.cancel.bind(orderController));
 }
