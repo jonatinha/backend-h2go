@@ -7,6 +7,8 @@ import {
 } from '../repositories/deliveryRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import { updateRunStatusSchema } from '../schemas/delivery.schema.js';
+import { scanOrderSchema } from '../schemas/order.schema.js';
+import { redeemDeliveryQr } from '../services/deliveryQrService.js';
 import { authService } from '../services/authService.js';
 
 function requireDriverContext(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -110,6 +112,24 @@ export class DriverController {
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erro ao atualizar status.';
       return reply.status(400).send(formatError('STATUS_ERROR', message, request.requestId));
+    }
+  }
+
+  async scanOrder(request: FastifyRequest, reply: FastifyReply) {
+    const driverId = requireDriverContext(request, reply);
+    if (!driverId) return;
+    const body = scanOrderSchema.parse(request.body);
+
+    try {
+      const result = await redeemDeliveryQr(body.payload, { role: 'driver', driverId });
+      return reply.send(formatSuccess(result));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível dar baixa neste pedido.';
+      const code = message.split(':')[0] || 'SCAN_FAILED';
+      const status = code === 'QR_NOT_ASSIGNED' || code === 'ORDER_CANCELLED' ? 409 : 400;
+      return reply.status(status).send(
+        formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+      );
     }
   }
 

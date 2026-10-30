@@ -8,6 +8,7 @@ import { shippingService } from './shippingService.js';
 import { pickupService } from './pickupService.js';
 import { productService } from './productService.js';
 import { addMoney, multiplyMoney } from '../utils/decimal.js';
+import { createDeliveryQrToken } from '../utils/deliveryQr.js';
 
 export type CreateOrderPayload = {
   fulfillment_type?: FulfillmentType;
@@ -140,6 +141,7 @@ export class OrderService {
         currency: 'BRL',
         notes: input.notes || null,
         idempotency_key: idempotencyKey || null,
+        delivery_qr_token: createDeliveryQrToken(),
         latitude: address.latitude ?? null,
         longitude: address.longitude ?? null,
       },
@@ -218,6 +220,7 @@ export class OrderService {
         currency: 'BRL',
         notes: input.notes || null,
         idempotency_key: idempotencyKey || null,
+        delivery_qr_token: createDeliveryQrToken(),
         latitude: agency.latitude ?? null,
         longitude: agency.longitude ?? null,
       },

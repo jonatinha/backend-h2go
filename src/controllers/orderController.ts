@@ -7,6 +7,7 @@ import {
   updateOrderStatusSchema,
 } from '../schemas/order.schema.js';
 import { formatSuccess, formatPaginated, formatError } from '../utils/response.js';
+import { withoutDeliveryQrToken } from '../utils/deliveryQr.js';
 
 export class OrderController {
   async create(request: FastifyRequest, reply: FastifyReply) {
@@ -73,7 +74,8 @@ export class OrderController {
       );
     }
 
-    return reply.send(formatSuccess(order));
+    const payload = request.user.role === 'admin' ? withoutDeliveryQrToken(order) : order;
+    return reply.send(formatSuccess(payload));
   }
 
   async cancel(request: FastifyRequest, reply: FastifyReply) {

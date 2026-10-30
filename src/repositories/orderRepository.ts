@@ -57,6 +57,30 @@ export class OrderRepository {
     return this.enrichMemoryOrder(found);
   }
 
+  async findByDeliveryQrToken(token: string): Promise<Order | null> {
+    if (!token) return null;
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('orders')
+          .select(ORDER_DETAIL_SELECT)
+          .eq('delivery_qr_token', token)
+          .maybeSingle();
+
+        if (!error && data) {
+          return this.mapOrder(data);
+        }
+      } catch (err) {
+        console.warn('Supabase order findByDeliveryQrToken error:', err);
+      }
+    }
+
+    const found = memoryOrders.find((o) => o.delivery_qr_token === token);
+    if (!found) return null;
+    return this.enrichMemoryOrder(found);
+  }
+
   async findByUserId(
     userId: string,
     options?: { page?: number; limit?: number; status?: OrderStatus; fulfillment_type?: FulfillmentType }
@@ -220,6 +244,7 @@ export class OrderRepository {
           currency: newOrder.currency,
           notes: newOrder.notes,
           idempotency_key: newOrder.idempotency_key,
+          delivery_qr_token: newOrder.delivery_qr_token,
           latitude: newOrder.latitude ?? null,
           longitude: newOrder.longitude ?? null,
         });
@@ -342,6 +367,7 @@ export class OrderRepository {
       pickup_scheduled_at: data.pickup_scheduled_at ?? null,
       ready_for_pickup_at: data.ready_for_pickup_at ?? null,
       picked_up_at: data.picked_up_at ?? null,
+      delivery_qr_token: data.delivery_qr_token ? String(data.delivery_qr_token) : '',
       agency: agency || undefined,
       driver_id: data.driver_id ?? null,
       accepted_at: data.accepted_at ?? null,

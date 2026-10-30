@@ -66,6 +66,10 @@ export const updateOrderStatusSchema = z.object({
   status: orderStatusSchema,
 });
 
+export const scanOrderSchema = z.object({
+  payload: z.string().trim().min(8).max(500),
+});
+
 export const listOrdersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -75,4 +79,5 @@ export const listOrdersQuerySchema = z.object({
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
+export type ScanOrderInput = z.infer<typeof scanOrderSchema>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;

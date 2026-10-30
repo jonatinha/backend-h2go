@@ -245,6 +245,7 @@ export interface Order {
   currency: string;
   notes: string | null;
   idempotency_key: string | null;
+  delivery_qr_token: string;
   driver_id?: string | null;
   driver_name?: string | null;
   driver_phone?: string | null;

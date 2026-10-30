@@ -11,8 +11,11 @@ import {
   orderIdParamSchema,
   updateOrderStatusSchema,
   listOrdersQuerySchema,
+  scanOrderSchema,
 } from '../schemas/order.schema.js';
 import { formatSuccess, formatPaginated, formatError } from '../utils/response.js';
+import { withoutDeliveryQrToken } from '../utils/deliveryQr.js';
+import { redeemDeliveryQr } from '../services/deliveryQrService.js';
 
 export class AdminController {
   async getDashboard(_request: FastifyRequest, reply: FastifyReply) {
@@ -36,7 +39,9 @@ export class AdminController {
       status: query.status,
       fulfillment_type: query.fulfillment_type,
     });
-    return reply.send(formatPaginated(orders, total, query.page, query.limit));
+    return reply.send(
+      formatPaginated(orders.map(withoutDeliveryQrToken), total, query.page, query.limit)
+    );
   }
 
   async getOrderById(request: FastifyRequest, reply: FastifyReply) {
@@ -49,14 +54,29 @@ export class AdminController {
       );
     }
 
-    return reply.send(formatSuccess(order));
+    return reply.send(formatSuccess(withoutDeliveryQrToken(order)));
   }
 
   async updateOrderStatus(request: FastifyRequest, reply: FastifyReply) {
     const { id } = orderIdParamSchema.parse(request.params);
     const body = updateOrderStatusSchema.parse(request.body);
     const updated = await orderService.updateOrderStatus(id, body.status);
-    return reply.send(formatSuccess(updated));
+    return reply.send(formatSuccess(withoutDeliveryQrToken(updated)));
+  }
+
+  async scanOrder(request: FastifyRequest, reply: FastifyReply) {
+    const body = scanOrderSchema.parse(request.body);
+    try {
+      const result = await redeemDeliveryQr(body.payload, { role: 'admin' });
+      return reply.send(formatSuccess(result));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível dar baixa neste pedido.';
+      const code = message.split(':')[0] || 'SCAN_FAILED';
+      const status = code === 'ORDER_CANCELLED' ? 409 : 400;
+      return reply.status(status).send(
+        formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+      );
+    }
   }
 
   async listProducts(request: FastifyRequest, reply: FastifyReply) {
@@ -170,12 +190,13 @@ export class AdminController {
 
   async updateOrder(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    const body = request.body as any;
-    const updated = await orderRepository.updateOrder(id, body);
+    const body = request.body as Record<string, unknown>;
+    delete body.delivery_qr_token;
+    const updated = await orderRepository.updateOrder(id, body as any);
     if (!updated) {
       return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
     }
-    return reply.send(formatSuccess(updated));
+    return reply.send(formatSuccess(withoutDeliveryQrToken(updated)));
   }
 
   async createUser(request: FastifyRequest, reply: FastifyReply) {
