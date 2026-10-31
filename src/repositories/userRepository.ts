@@ -132,13 +132,20 @@ export class UserRepository {
     return { users: data ?? [], total: count ?? data?.length ?? 0 };
   }
 
-  async count(): Promise<number> {
-    if (isTest) return memoryUsers.length;
+  async count(options?: { role?: UserRole }): Promise<number> {
+    if (isTest) {
+      let list = memoryUsers;
+      if (options?.role) {
+        list = list.filter((u) => u.role === options.role);
+      }
+      return list.length;
+    }
 
     ensureSupabase();
-    const { count, error } = await supabaseAdmin
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
+    let query = supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
+    if (options?.role) query = query.eq('role', options.role);
+
+    const { count, error } = await query;
 
     if (error) throw new Error(`Falha ao contar perfis: ${error.message}`);
     if (count === null) throw new Error('Supabase não retornou a contagem de perfis.');

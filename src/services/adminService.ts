@@ -86,6 +86,7 @@ export class AdminService {
     const previousTo = currentFrom;
 
     const [
+      customersCount,
       usersCount,
       productsResult,
       metrics,
@@ -107,6 +108,7 @@ export class AdminService {
       pendingPaymentsResult,
       failedPaymentsResult,
     ] = await Promise.all([
+      userRepository.count({ role: 'customer' }),
       userRepository.count(),
       productRepository.findAll({ limit: 100 }),
       logsRepository.getMetrics(),
@@ -250,6 +252,7 @@ export class AdminService {
       supabase: isSupabaseConfigured() ? 'CONNECTED' : 'DISCONNECTED',
       counts: {
         users: usersCount,
+        customers: customersCount,
         products: productsResult.total,
         orders: totalOrdersResult.total,
         orders_pending: pendingOrdersResult.total,
@@ -268,6 +271,10 @@ export class AdminService {
       },
       commercial: {
         currency: 'BRL',
+        totals: {
+          customers: customersCount,
+          users: usersCount,
+        },
         period: {
           from: currentFrom,
           to: currentTo,
