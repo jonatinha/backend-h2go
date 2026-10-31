@@ -160,6 +160,26 @@ export class AdminService {
     const countStatus = (orders: typeof currentOrders, status: string) =>
       orders.filter((order) => order.status === status).length;
 
+    const currentOrderValue = sumOrders(currentOrders);
+    const currentOrderCount = currentOrders.length;
+    const previousOrderValue = sumOrders(previousOrders);
+    const previousOrderCount = previousOrders.length;
+
+    const profileCache = new Map<string, string>();
+    const uniqueUserIds = [...new Set(recentOrders.map((order) => order.user_id).filter(Boolean))];
+    await Promise.all(
+      uniqueUserIds.map(async (userId) => {
+        const profile = await userRepository.findById(userId);
+        if (!profile) return;
+        const label =
+          (profile.full_name && profile.full_name.trim()) ||
+          profile.email?.split('@')[0] ||
+          profile.email ||
+          'Cliente';
+        profileCache.set(userId, label);
+      })
+    );
+
     const daily = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(currentStart.getTime() + index * DAY);
       const key = date.toISOString().slice(0, 10);
@@ -167,11 +187,13 @@ export class AdminService {
       const payments = currentApprovedPayments.filter(
         (payment) => payment.paid_at?.slice(0, 10) === key
       );
+      const dayOrderValue = sumOrders(orders);
 
       return {
         date: key,
         orders: orders.length,
-        order_value: sumOrders(orders),
+        order_value: dayOrderValue,
+        revenue: dayOrderValue,
         confirmed_revenue: payments.reduce((sum, payment) => sum + money(payment.amount), 0),
       };
     });
@@ -202,6 +224,10 @@ export class AdminService {
 
     const formattedRecentOrders = recentOrders.map((order) => {
       const payment = latestPaymentsByOrder.get(order.id);
+      const customerName =
+        profileCache.get(order.user_id) ||
+        order.pickup_contact_name ||
+        'Cliente';
       return {
         id: order.id,
         created_at: order.created_at,
@@ -210,6 +236,7 @@ export class AdminService {
         currency: order.currency || 'BRL',
         payment_status: payment?.status || 'not_loaded',
         payment_method: payment?.method || null,
+        customer_name: customerName,
       };
     });
 
@@ -248,21 +275,25 @@ export class AdminService {
           previous_to: previousTo,
         },
         current: {
-          orders: currentOrdersResult.total,
-          order_value: sumOrders(currentOrders),
+          orders: currentOrderCount,
+          order_value: currentOrderValue,
+          revenue: currentOrderValue,
           confirmed_revenue: currentRevenue,
           paid_orders: paidOrderIds.size,
           pending_orders: countStatus(currentOrders, 'pending'),
           cancelled_orders: countStatus(currentOrders, 'cancelled'),
+          average_order_value: currentOrderCount ? currentOrderValue / currentOrderCount : 0,
           average_paid_ticket: paidOrderIds.size ? currentRevenue / paidOrderIds.size : 0,
         },
         previous: {
-          orders: previousOrdersResult.total,
-          order_value: sumOrders(previousOrders),
+          orders: previousOrderCount,
+          order_value: previousOrderValue,
+          revenue: previousOrderValue,
           confirmed_revenue: previousRevenue,
           paid_orders: previousPaidOrderIds.size,
           pending_orders: countStatus(previousOrders, 'pending'),
           cancelled_orders: countStatus(previousOrders, 'cancelled'),
+          average_order_value: previousOrderCount ? previousOrderValue / previousOrderCount : 0,
           average_paid_ticket: previousPaidOrderIds.size ? previousRevenue / previousPaidOrderIds.size : 0,
         },
         payment_status: {
