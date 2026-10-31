@@ -81,3 +81,58 @@ export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type ScanOrderInput = z.infer<typeof scanOrderSchema>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
+
+const orderLineItemSchema = z.object({
+  product_id: z.string().uuid('ID de produto inválido'),
+  quantity: z.number().int().min(1).max(999),
+});
+
+export const adminCreateOrderSchema = baseCreateOrderSchema
+  .extend({
+    bill_to: z.enum(['customer', 'admin']).default('customer'),
+    customer_user_id: z.string().uuid('ID do cliente inválido').optional(),
+    items: z.array(orderLineItemSchema).min(1, 'Informe ao menos um produto'),
+  })
+  .superRefine((data, ctx) => {
+    if (data.fulfillment_type === 'delivery') {
+      if (!data.address_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'address_id é obrigatório para entrega',
+          path: ['address_id'],
+        });
+      }
+    } else {
+      if (!data.agency_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'agency_id é obrigatório para retirada na agência',
+          path: ['agency_id'],
+        });
+      }
+      if (!data.pickup_contact_name) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Nome de quem retira é obrigatório',
+          path: ['pickup_contact_name'],
+        });
+      }
+      if (!data.pickup_contact_phone) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Telefone de quem retira é obrigatório',
+          path: ['pickup_contact_phone'],
+        });
+      }
+    }
+
+    if (data.bill_to === 'customer' && !data.customer_user_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Selecione o cliente para quem é o pedido',
+        path: ['customer_user_id'],
+      });
+    }
+  });
+
+export type AdminCreateOrderInput = z.infer<typeof adminCreateOrderSchema>;

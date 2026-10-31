@@ -14,9 +14,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/users', adminController.listUsers.bind(adminController));
   fastify.post('/admin/users', adminController.createUser.bind(adminController));
   fastify.patch('/admin/users/:id', adminController.updateUser.bind(adminController));
+  fastify.get('/admin/users/:userId/addresses', adminController.listUserAddresses.bind(adminController));
+  fastify.post('/admin/users/:userId/addresses', adminController.createUserAddress.bind(adminController));
 
   // Orders (Pedidos & Localização)
   fastify.get('/admin/orders', adminController.listOrders.bind(adminController));
+  fastify.post('/admin/orders', adminController.createOrder.bind(adminController));
   fastify.post('/admin/orders/scan', adminController.scanOrder.bind(adminController));
   fastify.get('/admin/orders/:id', adminController.getOrderById.bind(adminController));
   fastify.patch('/admin/orders/:id/status', adminController.updateOrderStatus.bind(adminController));

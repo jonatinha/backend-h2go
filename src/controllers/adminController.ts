@@ -7,12 +7,15 @@ import { logsRepository } from '../repositories/logsRepository.js';
 import { settingsRepository } from '../repositories/settingsRepository.js';
 import { healthService } from '../services/healthService.js';
 import { orderService } from '../services/orderService.js';
+import { addressRepository } from '../repositories/addressRepository.js';
 import {
   orderIdParamSchema,
   updateOrderStatusSchema,
   listOrdersQuerySchema,
   scanOrderSchema,
+  adminCreateOrderSchema,
 } from '../schemas/order.schema.js';
+import { createAddressSchema } from '../schemas/address.schema.js';
 import { formatSuccess, formatPaginated, formatError } from '../utils/response.js';
 import { withoutDeliveryQrToken } from '../utils/deliveryQr.js';
 import { redeemDeliveryQr } from '../services/deliveryQrService.js';
@@ -62,6 +65,60 @@ export class AdminController {
     const body = updateOrderStatusSchema.parse(request.body);
     const updated = await orderService.updateOrderStatus(id, body.status);
     return reply.send(formatSuccess(withoutDeliveryQrToken(updated)));
+  }
+
+  async createOrder(request: FastifyRequest, reply: FastifyReply) {
+    const body = adminCreateOrderSchema.parse(request.body);
+    if (!request.user) {
+      return reply.status(401).send(formatError('UNAUTHORIZED', 'Não autenticado', request.requestId));
+    }
+
+    try {
+      const order = await orderService.createAdminOrder(request.user.id, body);
+      return reply.status(201).send(formatSuccess(withoutDeliveryQrToken(order)));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível criar o pedido.';
+      const code = message.split(':')[0] || 'ORDER_CREATE_FAILED';
+      const status =
+        code === 'USER_NOT_FOUND' || code === 'ADDRESS_NOT_FOUND' || code === 'PROD_NOT_FOUND'
+          ? 404
+          : 400;
+      return reply.status(status).send(
+        formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+      );
+    }
+  }
+
+  async listUserAddresses(request: FastifyRequest, reply: FastifyReply) {
+    const { userId } = request.params as { userId: string };
+    if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
+      return reply.status(400).send(formatError('INVALID_USER', 'ID de usuário inválido.', request.requestId));
+    }
+    const addresses = await addressRepository.findByUserId(userId);
+    return reply.send(formatSuccess(addresses));
+  }
+
+  async createUserAddress(request: FastifyRequest, reply: FastifyReply) {
+    const { userId } = request.params as { userId: string };
+    if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
+      return reply.status(400).send(formatError('INVALID_USER', 'ID de usuário inválido.', request.requestId));
+    }
+    const owner = await userRepository.findById(userId);
+    if (!owner) {
+      return reply.status(404).send(formatError('USER_NOT_FOUND', 'Usuário não encontrado.', request.requestId));
+    }
+
+    const body = createAddressSchema.parse(request.body);
+    const created = await addressRepository.create({
+      user_id: userId,
+      ...body,
+      complement: body.complement ?? null,
+      reference: body.reference ?? null,
+      latitude: body.latitude ?? null,
+      longitude: body.longitude ?? null,
+      is_default: body.is_default ?? false,
+    });
+    return reply.status(201).send(formatSuccess(created));
   }
 
   async scanOrder(request: FastifyRequest, reply: FastifyReply) {

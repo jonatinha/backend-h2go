@@ -10,6 +10,8 @@ import { productService } from './productService.js';
 import { addMoney, multiplyMoney } from '../utils/decimal.js';
 import { createDeliveryQrToken, DELIVERY_QR_PREFIX } from '../utils/deliveryQr.js';
 import { autoAcceptService } from './autoAcceptService.js';
+import { userRepository } from '../repositories/userRepository.js';
+import type { AdminCreateOrderInput } from '../schemas/order.schema.js';
 
 export type CreateOrderPayload = {
   fulfillment_type?: FulfillmentType;
@@ -43,6 +45,105 @@ export class OrderService {
     }
 
     return this.createDeliveryOrder(userId, input, orderItemsToCreate, subtotal, idempotencyKey);
+  }
+
+  async createAdminOrder(adminUserId: string, input: AdminCreateOrderInput): Promise<Order> {
+    const targetUserId =
+      input.bill_to === 'admin' ? adminUserId : (input.customer_user_id as string);
+
+    const owner = await userRepository.findById(targetUserId);
+    if (!owner) {
+      throw new Error('USER_NOT_FOUND: Usuário do pedido não encontrado.');
+    }
+    if (!owner.is_active) {
+      throw new Error('USER_INACTIVE: A conta selecionada está inativa.');
+    }
+
+    if (input.bill_to === 'customer' && owner.role !== 'customer') {
+      throw new Error('INVALID_CUSTOMER: Selecione um cliente (conta com perfil de cliente).');
+    }
+
+    const adminNote = `[OPS] Pedido criado pelo admin ${adminUserId}`;
+    const mergedNotes = input.notes?.trim()
+      ? `${input.notes.trim()} | ${adminNote}`
+      : adminNote;
+
+    const payload: CreateOrderPayload = {
+      fulfillment_type: input.fulfillment_type,
+      address_id: input.address_id,
+      agency_id: input.agency_id,
+      pickup_contact_name: input.pickup_contact_name,
+      pickup_contact_phone: input.pickup_contact_phone,
+      pickup_scheduled_at: input.pickup_scheduled_at,
+      payment_method: input.payment_method,
+      notes: mergedNotes,
+    };
+
+    if (input.bill_to === 'admin') {
+      payload.pickup_contact_name =
+        payload.pickup_contact_name ?? owner.full_name ?? owner.email;
+      payload.pickup_contact_phone = payload.pickup_contact_phone ?? owner.phone ?? '15999998888';
+    }
+
+    const { orderItemsToCreate, subtotal } = await this.buildOrderItemsFromLines(input.items);
+    const skipCart = { skipCart: true as const };
+
+    if ((input.fulfillment_type || 'delivery') === 'pickup') {
+      return this.createPickupOrder(
+        targetUserId,
+        payload,
+        orderItemsToCreate,
+        subtotal,
+        `admin_${Date.now()}_${adminUserId.slice(0, 8)}`,
+        skipCart
+      );
+    }
+
+    return this.createDeliveryOrder(
+      targetUserId,
+      payload,
+      orderItemsToCreate,
+      subtotal,
+      `admin_${Date.now()}_${adminUserId.slice(0, 8)}`,
+      skipCart
+    );
+  }
+
+  private async buildOrderItemsFromLines(
+    items: Array<{ product_id: string; quantity: number }>
+  ) {
+    let subtotal = 0;
+    const orderItemsToCreate = [];
+
+    for (const item of items) {
+      const product = await productRepository.findById(item.product_id);
+      if (!product) {
+        throw new Error(`PROD_NOT_FOUND: Produto "${item.product_id}" não encontrado.`);
+      }
+      if (!product.is_active) {
+        throw new Error(`PROD_INACTIVE: O produto "${product.name}" não está ativo.`);
+      }
+
+      const qtyCheck = productService.validateQuantityRules(product, item.quantity);
+      if (!qtyCheck.valid) {
+        throw new Error(`INVALID_QTY: ${qtyCheck.error}`);
+      }
+
+      const unitPrice = product.price;
+      const itemSubtotal = multiplyMoney(unitPrice, item.quantity);
+      subtotal = addMoney(subtotal, itemSubtotal);
+
+      orderItemsToCreate.push({
+        product_id: product.id,
+        product_name: product.name,
+        sku: product.sku,
+        quantity: item.quantity,
+        unit_price: unitPrice,
+        subtotal: itemSubtotal,
+      });
+    }
+
+    return { orderItemsToCreate, subtotal };
   }
 
   private async buildOrderItemsFromCart(userId: string) {
@@ -99,14 +200,19 @@ export class OrderService {
       subtotal: number;
     }>,
     subtotal: number,
-    idempotencyKey?: string
+    idempotencyKey?: string,
+    options?: { skipCart?: boolean }
   ): Promise<Order> {
     if (!input.address_id) {
       throw new Error('ADDRESS_REQUIRED: Endereço é obrigatório para entrega.');
     }
 
     const shippingFee = await shippingService.getShippingFee();
-    const cart = await cartRepository.getOrCreateActiveCart(userId, shippingFee);
+    let cartId: string | null = null;
+    if (!options?.skipCart) {
+      const cart = await cartRepository.getOrCreateActiveCart(userId, shippingFee);
+      cartId = cart.id;
+    }
 
     const address = await addressRepository.findById(input.address_id, userId);
     if (!address) {
@@ -149,7 +255,9 @@ export class OrderService {
       orderItemsToCreate
     );
 
-    await cartRepository.convertCart(cart.id);
+    if (cartId) {
+      await cartRepository.convertCart(cartId);
+    }
 
     const payment = await paymentRepository.create({
       order_id: order.id,
@@ -185,7 +293,8 @@ export class OrderService {
       subtotal: number;
     }>,
     subtotal: number,
-    idempotencyKey?: string
+    idempotencyKey?: string,
+    options?: { skipCart?: boolean }
   ): Promise<Order> {
     const pickupEnabled = await pickupService.isPickupEnabled();
     if (!pickupEnabled) {
@@ -200,7 +309,11 @@ export class OrderService {
 
     const agency = await pickupService.getAgencyForPickup(input.agency_id);
     const shippingFee = await pickupService.getPickupShippingFee();
-    const cart = await cartRepository.getOrCreateActiveCart(userId, shippingFee);
+    let cartId: string | null = null;
+    if (!options?.skipCart) {
+      const cart = await cartRepository.getOrCreateActiveCart(userId, shippingFee);
+      cartId = cart.id;
+    }
     const total = addMoney(subtotal, shippingFee);
     const paymentMethod: PaymentMethod = input.payment_method || 'cash';
 
@@ -230,7 +343,9 @@ export class OrderService {
       orderItemsToCreate
     );
 
-    await cartRepository.convertCart(cart.id);
+    if (cartId) {
+      await cartRepository.convertCart(cartId);
+    }
 
     const payment = await paymentRepository.create({
       order_id: order.id,
