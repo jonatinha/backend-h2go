@@ -19,6 +19,42 @@ import { createAddressSchema } from '../schemas/address.schema.js';
 import { formatSuccess, formatPaginated, formatError } from '../utils/response.js';
 import { withoutDeliveryQrToken } from '../utils/deliveryQr.js';
 import { redeemDeliveryQr } from '../services/deliveryQrService.js';
+import type { Order, UserProfile } from '../types/index.js';
+
+function customerDisplayName(order: Order, profile?: UserProfile | null): string {
+  const fromProfile = profile?.full_name?.trim();
+  const fromPickup = order.pickup_contact_name?.trim();
+  const rawAddressName = order.address?.name?.trim() ?? '';
+  const fromAddress = /^(principal|endere[cç]o de entrega)$/i.test(rawAddressName)
+    ? ''
+    : rawAddressName;
+  const fromEmail = profile?.email?.trim();
+  return fromProfile || fromPickup || fromAddress || fromEmail || 'Cliente';
+}
+
+async function withCustomerDetails<T extends Order>(orders: T[]) {
+  let profiles: UserProfile[] = [];
+  try {
+    profiles = await userRepository.findByIds(orders.map((order) => order.user_id));
+  } catch (err) {
+    console.warn('Não foi possível carregar os nomes dos clientes:', err);
+  }
+  const byId = new Map(profiles.map((profile) => [profile.id, profile]));
+
+  return orders.map((order) => {
+    const profile = byId.get(order.user_id);
+    const customerName = customerDisplayName(order, profile);
+    return {
+      ...order,
+      customer_name: customerName,
+      customer: {
+        name: customerName,
+        email: profile?.email ?? null,
+        phone: profile?.phone ?? order.address?.phone ?? null,
+      },
+    };
+  });
+}
 
 export class AdminController {
   async getDashboard(_request: FastifyRequest, reply: FastifyReply) {
@@ -42,8 +78,9 @@ export class AdminController {
       status: query.status,
       fulfillment_type: query.fulfillment_type,
     });
+    const withCustomers = await withCustomerDetails(orders);
     return reply.send(
-      formatPaginated(orders.map(withoutDeliveryQrToken), total, query.page, query.limit)
+      formatPaginated(withCustomers.map(withoutDeliveryQrToken), total, query.page, query.limit)
     );
   }
 
@@ -57,14 +94,16 @@ export class AdminController {
       );
     }
 
-    return reply.send(formatSuccess(withoutDeliveryQrToken(order)));
+    const [withCustomer] = await withCustomerDetails([order]);
+    return reply.send(formatSuccess(withoutDeliveryQrToken(withCustomer)));
   }
 
   async updateOrderStatus(request: FastifyRequest, reply: FastifyReply) {
     const { id } = orderIdParamSchema.parse(request.params);
     const body = updateOrderStatusSchema.parse(request.body);
     const updated = await orderService.updateOrderStatus(id, body.status);
-    return reply.send(formatSuccess(withoutDeliveryQrToken(updated)));
+    const [withCustomer] = await withCustomerDetails([updated]);
+    return reply.send(formatSuccess(withoutDeliveryQrToken(withCustomer)));
   }
 
   async createOrder(request: FastifyRequest, reply: FastifyReply) {

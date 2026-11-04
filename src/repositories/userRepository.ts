@@ -52,6 +52,24 @@ export class UserRepository {
     return data ?? null;
   }
 
+  async findByIds(ids: string[]): Promise<UserProfile[]> {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) return [];
+
+    if (isTest) {
+      return memoryUsers.filter((user) => unique.includes(user.id)).map((user) => ({ ...user }));
+    }
+
+    ensureSupabase();
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .in('id', unique);
+
+    if (error) throw new Error(`Falha ao consultar perfis: ${error.message}`);
+    return data ?? [];
+  }
+
   async findByEmail(email: string): Promise<UserProfile | null> {
     if (isTest) {
       const user = memoryUsers.find(
