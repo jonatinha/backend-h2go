@@ -146,6 +146,7 @@ export class OrderRepository {
     to?: string;
     driver_id?: string;
     unassigned_only?: boolean;
+    archived?: boolean;
   }): Promise<{ orders: Order[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
@@ -168,6 +169,8 @@ export class OrderRepository {
         if (options?.to) query = query.lt('created_at', options.to);
         if (options?.driver_id) query = query.eq('driver_id', options.driver_id);
         if (options?.unassigned_only) query = query.is('driver_id', null);
+        if (options?.archived === true) query = query.not('archived_at', 'is', null);
+        else if (options?.archived === false) query = query.is('archived_at', null);
 
         const { data, count, error } = await query
           .order('created_at', { ascending: false })
@@ -198,6 +201,11 @@ export class OrderRepository {
     }
     if (options?.unassigned_only) {
       filtered = filtered.filter((o) => !o.driver_id);
+    }
+    if (options?.archived === true) {
+      filtered = filtered.filter((o) => Boolean(o.archived_at));
+    } else if (options?.archived === false) {
+      filtered = filtered.filter((o) => !o.archived_at);
     }
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -354,6 +362,46 @@ export class OrderRepository {
 
     Object.assign(order, updates, { updated_at: now });
     return this.enrichMemoryOrder(order);
+  }
+
+  async setArchived(id: string, archived: boolean): Promise<Order | null> {
+    const patch = { archived_at: archived ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
+    if (isSupabaseConfigured()) {
+      const { data, error } = await supabaseAdmin
+        .from('orders')
+        .update(patch)
+        .eq('id', id)
+        .select(ORDER_DETAIL_SELECT)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) return null;
+      return this.mapOrder(data);
+    }
+    return this.updateOrder(id, { archived_at: patch.archived_at });
+  }
+
+  async delete(id: string): Promise<boolean> {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('orders')
+          .delete()
+          .eq('id', id)
+          .select('id');
+
+        if (error) throw new Error(error.message);
+        if (data && data.length > 0) return true;
+      } catch (err) {
+        console.warn('Supabase delete order error:', err);
+        throw err;
+      }
+    }
+
+    const index = memoryOrders.findIndex((order) => order.id === id);
+    if (index === -1) return false;
+    memoryOrders.splice(index, 1);
+    memoryOrderItems = memoryOrderItems.filter((item) => item.order_id !== id);
+    return true;
   }
 
   private mapOrder(data: any): Order {

@@ -14,6 +14,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/users', adminController.listUsers.bind(adminController));
   fastify.post('/admin/users', adminController.createUser.bind(adminController));
   fastify.patch('/admin/users/:id', adminController.updateUser.bind(adminController));
+  fastify.delete('/admin/users/:id', adminController.deleteUser.bind(adminController));
   fastify.get('/admin/users/:userId/addresses', adminController.listUserAddresses.bind(adminController));
   fastify.post('/admin/users/:userId/addresses', adminController.createUserAddress.bind(adminController));
 
@@ -24,6 +25,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/orders/:id', adminController.getOrderById.bind(adminController));
   fastify.patch('/admin/orders/:id/status', adminController.updateOrderStatus.bind(adminController));
   fastify.patch('/admin/orders/:id', adminController.updateOrder.bind(adminController));
+  fastify.post('/admin/orders/:id/archive', adminController.archiveOrder.bind(adminController));
+  fastify.post('/admin/orders/:id/unarchive', adminController.unarchiveOrder.bind(adminController));
+  fastify.delete('/admin/orders/:id', adminController.deleteOrder.bind(adminController));
 
   // Agencies (Retirada na agência)
   fastify.get('/admin/agencies', agencyController.listAdmin.bind(agencyController));

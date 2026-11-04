@@ -8,6 +8,7 @@ import { settingsRepository } from '../repositories/settingsRepository.js';
 import { healthService } from '../services/healthService.js';
 import { orderService } from '../services/orderService.js';
 import { addressRepository } from '../repositories/addressRepository.js';
+import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 import {
   orderIdParamSchema,
   updateOrderStatusSchema,
@@ -77,6 +78,7 @@ export class AdminController {
       limit: query.limit,
       status: query.status,
       fulfillment_type: query.fulfillment_type,
+      archived: query.archived === 'true',
     });
     const withCustomers = await withCustomerDetails(orders);
     return reply.send(
@@ -284,6 +286,43 @@ export class AdminController {
     return reply.send(formatSuccess({ message: 'Produto excluído com sucesso.' }));
   }
 
+  async archiveOrder(request: FastifyRequest, reply: FastifyReply) {
+    return this.changeOrderArchive(request, reply, true);
+  }
+
+  async unarchiveOrder(request: FastifyRequest, reply: FastifyReply) {
+    return this.changeOrderArchive(request, reply, false);
+  }
+
+  private async changeOrderArchive(request: FastifyRequest, reply: FastifyReply, archived: boolean) {
+    const { id } = request.params as { id: string };
+    try {
+      const updated = await orderRepository.setArchived(id, archived);
+      if (!updated) {
+        return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
+      }
+      const [withCustomer] = await withCustomerDetails([updated]);
+      return reply.send(formatSuccess(withoutDeliveryQrToken(withCustomer)));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível arquivar o pedido.';
+      return reply.status(400).send(formatError('ORDER_ARCHIVE_FAILED', message, request.requestId));
+    }
+  }
+
+  async deleteOrder(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    try {
+      const removed = await orderRepository.delete(id);
+      if (!removed) {
+        return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
+      }
+      return reply.send(formatSuccess({ message: 'Pedido excluído.' }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível excluir o pedido.';
+      return reply.status(400).send(formatError('ORDER_DELETE_FAILED', message, request.requestId));
+    }
+  }
+
   async updateOrder(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const body = request.body as Record<string, unknown>;
@@ -313,12 +352,89 @@ export class AdminController {
 
   async updateUser(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    const body = request.body as any;
-    const updated = await userRepository.updateProfile(id, body);
+    const body = request.body as {
+      full_name?: string;
+      phone?: string;
+      email?: string;
+      role?: string;
+      is_active?: boolean;
+      password?: string;
+    };
+    const allowedRoles = new Set(['customer', 'admin', 'delivery']);
+    if (body.role && !allowedRoles.has(body.role)) {
+      return reply.status(400).send(formatError('INVALID_ROLE', 'Perfil inválido.', request.requestId));
+    }
+    if (body.password && body.password.length < 6) {
+      return reply.status(400).send(
+        formatError('INVALID_PASSWORD', 'A senha precisa ter pelo menos 6 caracteres.', request.requestId)
+      );
+    }
+
+    const email = body.email?.trim().toLowerCase();
+    if (email) {
+      const taken = await userRepository.findByEmail(email);
+      if (taken && taken.id !== id) {
+        return reply.status(409).send(formatError('EMAIL_IN_USE', 'Este e-mail já está em uso.', request.requestId));
+      }
+    }
+
+    const updates: Partial<Pick<UserProfile, 'full_name' | 'phone' | 'email' | 'role' | 'is_active'>> = {};
+    if (body.full_name !== undefined) updates.full_name = body.full_name.trim() || null;
+    if (body.phone !== undefined) updates.phone = body.phone.trim() || null;
+    if (email) updates.email = email;
+    if (body.role) updates.role = body.role as UserProfile['role'];
+    if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
+
+    const updated = await userRepository.updateProfile(id, updates);
     if (!updated) {
       return reply.status(404).send(formatError('NOT_FOUND', 'Usuário não encontrado.', request.requestId));
     }
+
+    if ((email || body.password) && isSupabaseConfigured()) {
+      const authPatch: { email?: string; password?: string; email_confirm?: boolean } = {};
+      if (email) {
+        authPatch.email = email;
+        authPatch.email_confirm = true;
+      }
+      if (body.password) authPatch.password = body.password;
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(id, authPatch);
+      if (error && body.password) {
+        return reply.status(400).send(
+          formatError('AUTH_UPDATE_FAILED', 'Não foi possível atualizar o login deste usuário.', request.requestId)
+        );
+      }
+    }
+
     return reply.send(formatSuccess(updated));
+  }
+
+  async deleteUser(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    if (request.user?.id === id) {
+      return reply.status(400).send(
+        formatError('CANNOT_DELETE_SELF', 'Você não pode apagar a própria conta.', request.requestId)
+      );
+    }
+
+    try {
+      const result = await userRepository.deleteProfile(id);
+      if (result === 'not_found') {
+        return reply.status(404).send(formatError('NOT_FOUND', 'Usuário não encontrado.', request.requestId));
+      }
+      if (result === 'has_orders') {
+        return reply.status(409).send(
+          formatError(
+            'USER_HAS_ORDERS',
+            'Este usuário ainda tem pedidos. Apague esses pedidos antes de excluir a conta.',
+            request.requestId
+          )
+        );
+      }
+      return reply.send(formatSuccess({ message: 'Usuário excluído.' }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível excluir o usuário.';
+      return reply.status(400).send(formatError('USER_DELETE_FAILED', message, request.requestId));
+    }
   }
 }
 

@@ -75,6 +75,7 @@ export const listOrdersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: orderStatusSchema.optional(),
   fulfillment_type: z.enum(['delivery', 'pickup']).optional(),
+  archived: z.enum(['true', 'false']).optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

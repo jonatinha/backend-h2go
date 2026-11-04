@@ -172,9 +172,10 @@ export class UserRepository {
 
   async updateProfile(
     id: string,
-    updates: Partial<Pick<UserProfile, 'full_name' | 'phone' | 'role' | 'is_active'>>
+    updates: Partial<Pick<UserProfile, 'full_name' | 'phone' | 'email' | 'role' | 'is_active'>>
   ): Promise<UserProfile | null> {
     const now = new Date().toISOString();
+    if (updates.email) updates.email = updates.email.toLowerCase().trim();
     if (isTest || !isSupabaseConfigured()) {
       const idx = memoryUsers.findIndex((u) => u.id === id);
       if (idx === -1) return null;
@@ -201,6 +202,33 @@ export class UserRepository {
       return { ...memoryUsers[idx] };
     }
     return null;
+  }
+
+  async deleteProfile(id: string): Promise<'ok' | 'not_found' | 'has_orders'> {
+    if (isTest || !isSupabaseConfigured()) {
+      const index = memoryUsers.findIndex((user) => user.id === id);
+      if (index === -1) return 'not_found';
+      memoryUsers.splice(index, 1);
+      return 'ok';
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', id)
+      .select('id');
+
+    if (error) {
+      if (error.code === '23503') return 'has_orders';
+      throw new Error(`Falha ao excluir usuário: ${error.message}`);
+    }
+    if (!data?.length) return 'not_found';
+
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError && !/not found/i.test(authError.message)) {
+      console.warn('Perfil removido, mas o login não foi apagado:', authError.message);
+    }
+    return 'ok';
   }
 }
 

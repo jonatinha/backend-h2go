@@ -153,6 +153,7 @@ export class DeliveryRunService {
         status,
         fulfillment_type: 'delivery',
         unassigned_only: true,
+        archived: false,
       });
 
       for (const order of orders) {
