@@ -10,6 +10,7 @@ import { productService } from './productService.js';
 import { addMoney, multiplyMoney } from '../utils/decimal.js';
 import { createDeliveryQrToken, DELIVERY_QR_PREFIX } from '../utils/deliveryQr.js';
 import { autoAcceptService } from './autoAcceptService.js';
+import { stockService } from './stockService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import type { AdminCreateOrderInput } from '../schemas/order.schema.js';
 
@@ -272,6 +273,7 @@ export class OrderService {
       metadata: { notes: input.notes || null, fulfillment_type: 'delivery' },
     });
 
+    await this.reserveStock(order);
     const acceptedOrder = await autoAcceptService.applyIfEnabled(order);
 
     return {
@@ -365,6 +367,7 @@ export class OrderService {
       },
     });
 
+    await this.reserveStock(order);
     const acceptedOrder = await autoAcceptService.applyIfEnabled(order);
 
     return {
@@ -421,6 +424,7 @@ export class OrderService {
       );
     }
 
+    await stockService.applyOrder(order, 'in');
     const updated = await orderRepository.updateStatus(orderId, 'cancelled');
     if (!updated) {
       throw new Error('FAIL_CANCEL: Não foi possível cancelar o pedido.');
@@ -442,11 +446,26 @@ export class OrderService {
 
     this.assertStatusMatchesFulfillment(current.fulfillment_type, status);
 
+    if (status === 'cancelled' && current.status !== 'cancelled') {
+      await stockService.applyOrder(current, 'in');
+    } else if (current.status === 'cancelled' && status !== 'cancelled') {
+      await stockService.applyOrder(current, 'out');
+    }
+
     const updated = await orderRepository.updateStatus(orderId, status);
     if (!updated) {
       throw new Error('ORDER_NOT_FOUND: Pedido não encontrado.');
     }
     return updated;
+  }
+
+  private async reserveStock(order: Order): Promise<void> {
+    try {
+      await stockService.applyOrder(order, 'out');
+    } catch (error) {
+      await orderRepository.delete(order.id);
+      throw error;
+    }
   }
 
   private assertStatusMatchesFulfillment(fulfillmentType: FulfillmentType, status: OrderStatus): void {

@@ -54,6 +54,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.patch('/admin/products/:id', adminController.updateProduct.bind(adminController));
   fastify.delete('/admin/products/:id', adminController.deleteProduct.bind(adminController));
 
+  fastify.get('/admin/stock', adminController.listStock.bind(adminController));
+  fastify.post('/admin/stock/movements', adminController.createStockMovement.bind(adminController));
+
   // System, Logs & Health
   fastify.get('/admin/logs', adminController.listLogs.bind(adminController));
   fastify.get('/admin/system', adminController.getSystemSettings.bind(adminController));

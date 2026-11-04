@@ -9,6 +9,7 @@ import { healthService } from '../services/healthService.js';
 import { orderService } from '../services/orderService.js';
 import { addressRepository } from '../repositories/addressRepository.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
+import { stockService, type StockMovementType } from '../services/stockService.js';
 import {
   orderIdParamSchema,
   updateOrderStatusSchema,
@@ -312,6 +313,13 @@ export class AdminController {
   async deleteOrder(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     try {
+      const existing = await orderRepository.findById(id);
+      if (!existing) {
+        return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
+      }
+      if (existing.status !== 'cancelled') {
+        await stockService.applyOrder(existing, 'in');
+      }
       const removed = await orderRepository.delete(id);
       if (!removed) {
         return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
@@ -406,6 +414,54 @@ export class AdminController {
     }
 
     return reply.send(formatSuccess(updated));
+  }
+
+  async listStock(request: FastifyRequest, reply: FastifyReply) {
+    const [productsResult, movements] = await Promise.all([
+      productRepository.findAll({ page: 1, limit: 100 }),
+      stockService.listMovements(100),
+    ]);
+    return reply.send(formatSuccess({
+      products: productsResult.products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        stock_quantity: product.stock_quantity,
+        stock_control_enabled: product.stock_control_enabled,
+        is_active: product.is_active,
+      })),
+      movements,
+    }));
+  }
+
+  async createStockMovement(request: FastifyRequest, reply: FastifyReply) {
+    const body = request.body as {
+      product_id?: string;
+      type?: StockMovementType;
+      quantity?: number;
+      note?: string;
+    };
+    if (!body.product_id || !body.type || !['in', 'out', 'adjustment'].includes(body.type)) {
+      return reply.status(400).send(
+        formatError('INVALID_STOCK', 'Informe o produto, o tipo e a quantidade.', request.requestId)
+      );
+    }
+    try {
+      const movement = await stockService.move({
+        productId: body.product_id,
+        type: body.type,
+        quantity: Number(body.quantity),
+        note: body.note,
+      });
+      return reply.status(201).send(formatSuccess(movement));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Não foi possível lançar o estoque.';
+      const code = message.split(':')[0] || 'STOCK_FAILED';
+      const status = code === 'INSUFFICIENT_STOCK' || code === 'PRODUCT_NOT_FOUND' ? 409 : 400;
+      return reply.status(status).send(
+        formatError(code, message.replace(/^[^:]+:\s*/, ''), request.requestId)
+      );
+    }
   }
 
   async deleteUser(request: FastifyRequest, reply: FastifyReply) {
