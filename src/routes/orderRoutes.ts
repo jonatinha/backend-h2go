@@ -1,5 +1,6 @@
 ﻿import { FastifyInstance } from 'fastify';
 import { orderController } from '../controllers/orderController.js';
+import { receiptController } from '../controllers/receiptController.js';
 import { requireAuth } from '../middlewares/auth.js';
 
 export async function orderRoutes(fastify: FastifyInstance) {
@@ -8,6 +9,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
   fastify.post('/orders', orderController.create.bind(orderController));
   fastify.get('/orders', orderController.list.bind(orderController));
   fastify.get('/orders/:id/delivery-qr', orderController.getDeliveryQr.bind(orderController));
+  fastify.get('/orders/:id/receipt-acceptance', receiptController.getPendingForOrder.bind(receiptController));
+  fastify.post('/orders/:id/receipt-acceptance/respond', receiptController.respondForOrder.bind(receiptController));
   fastify.get('/orders/:id', orderController.getById.bind(orderController));
   fastify.post('/orders/:id/cancel', orderController.cancel.bind(orderController));
 }

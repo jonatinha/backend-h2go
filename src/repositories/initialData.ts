@@ -179,4 +179,10 @@ export const INITIAL_SETTINGS: SystemSetting[] = [
   { id: '13', key: 'HERO_TAG', value: 'Troca de vasilhame', description: 'Subtag ou aviso do Card Principal (ex: Fardo c/ 6, Retornável)', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '14', key: 'HERO_IMAGE_URL', value: '/products/water-jug-20l.png', description: 'URL da imagem flutuante do Card Principal', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: '15', key: 'HERO_PRODUCT_ID', value: 'b1000001-0000-0000-0000-000000000005', description: 'ID do Produto associado ao botão do Card Principal', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '16', key: 'COMPANY_LEGAL_NAME', value: 'EDNA DE FRANCA LOUREIRO OLIVEIRA', description: 'Razão social da empresa', is_public: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '17', key: 'COMPANY_CNPJ', value: '53.334.002/0001-83', description: 'CNPJ da empresa', is_public: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '18', key: 'COMPANY_PHONE', value: '+55 15 98110-6153', description: 'Telefone de contato da empresa', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '19', key: 'DRIVER_SUPPORT_PHONE', value: '+55 15 98110-6153', description: 'Telefone ou WhatsApp para o botão Fale Conosco do app entregador', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '20', key: 'DRIVER_SUPPORT_URL', value: 'https://wa.me/5515981106153', description: 'URL de atendimento (WhatsApp web, formulário, etc.)', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '21', key: 'LOW_STOCK_THRESHOLD', value: '10', description: 'Margem reservada: o cliente só compra até restar essa quantidade', is_public: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ];

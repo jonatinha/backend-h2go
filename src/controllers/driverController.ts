@@ -121,7 +121,11 @@ export class DriverController {
     const body = scanOrderSchema.parse(request.body);
 
     try {
-      const result = await redeemDeliveryQr(body.payload, { role: 'driver', driverId });
+      const result = await redeemDeliveryQr(body.payload, {
+        role: 'driver',
+        driverId,
+        profileId: request.user?.id ?? null,
+      });
       return reply.send(formatSuccess(result));
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Não foi possível dar baixa neste pedido.';

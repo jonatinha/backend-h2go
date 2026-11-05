@@ -166,7 +166,10 @@ export class AdminController {
   async scanOrder(request: FastifyRequest, reply: FastifyReply) {
     const body = scanOrderSchema.parse(request.body);
     try {
-      const result = await redeemDeliveryQr(body.payload, { role: 'admin' });
+      const result = await redeemDeliveryQr(body.payload, {
+        role: 'admin',
+        profileId: request.user?.id ?? null,
+      });
       return reply.send(formatSuccess(result));
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Não foi possível dar baixa neste pedido.';
@@ -224,7 +227,14 @@ export class AdminController {
         formatError('INVALID_SETTING', 'Chave e valor são obrigatórios.', request.requestId)
       );
     }
-    const setting = await settingsRepository.setKey(body.key, String(body.value), body.description);
+    const adminOnlyKeys = new Set(['COMPANY_CNPJ', 'COMPANY_LEGAL_NAME']);
+    const isPublic = adminOnlyKeys.has(body.key) ? false : true;
+    const setting = await settingsRepository.setKey(
+      body.key,
+      String(body.value),
+      body.description,
+      isPublic,
+    );
     return reply.send(formatSuccess(setting));
   }
 
@@ -417,19 +427,26 @@ export class AdminController {
   }
 
   async listStock(request: FastifyRequest, reply: FastifyReply) {
-    const [productsResult, movements] = await Promise.all([
+    const [productsResult, movements, lowStockThreshold] = await Promise.all([
       productRepository.findAll({ page: 1, limit: 100 }),
       stockService.listMovements(100),
+      settingsRepository.getNumber('LOW_STOCK_THRESHOLD', 10),
     ]);
+    const threshold = Number.isFinite(lowStockThreshold) ? lowStockThreshold : 10;
     return reply.send(formatSuccess({
-      products: productsResult.products.map((product) => ({
-        id: product.id,
-        name: product.name,
-        sku: product.sku,
-        stock_quantity: product.stock_quantity,
-        stock_control_enabled: product.stock_control_enabled,
-        is_active: product.is_active,
-      })),
+      low_stock_threshold: threshold,
+      products: productsResult.products.map((product) => {
+        const quantity = Number(product.stock_quantity) || 0;
+        return {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          stock_quantity: quantity,
+          stock_control_enabled: product.stock_control_enabled,
+          is_active: product.is_active,
+          low_stock: product.stock_control_enabled !== false && quantity <= threshold,
+        };
+      }),
       movements,
     }));
   }

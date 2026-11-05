@@ -1,5 +1,6 @@
 import type { Order } from '../types/index.js';
 import { productRepository } from '../repositories/productRepository.js';
+import { settingsRepository } from '../repositories/settingsRepository.js';
 import { supabaseAdmin, isSupabaseConfigured } from '../repositories/supabaseClient.js';
 
 export type StockMovementType = 'in' | 'out' | 'adjustment';
@@ -75,8 +76,16 @@ export class StockService {
 
       if (input.type === 'in') next = current + quantity;
       else if (input.type === 'out') {
-        if (current < quantity) {
-          throw new Error(`INSUFFICIENT_STOCK: ${product.name} tem ${current} em estoque.`);
+        const margin = input.orderId
+          ? Math.max(0, await settingsRepository.getNumber('LOW_STOCK_THRESHOLD', 0))
+          : 0;
+        const sellable = Math.max(0, current - margin);
+        if (sellable < quantity) {
+          throw new Error(
+            input.orderId
+              ? `INSUFFICIENT_STOCK: ${product.name} não está disponível nessa quantidade.`
+              : `INSUFFICIENT_STOCK: ${product.name} tem ${current} em estoque.`,
+          );
         }
         next = current - quantity;
       } else {

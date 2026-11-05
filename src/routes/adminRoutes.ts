@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { adminController } from '../controllers/adminController.js';
+import { receiptController } from '../controllers/receiptController.js';
 import { agencyController } from '../controllers/agencyController.js';
 import { deliveryAdminController } from '../controllers/deliveryAdminController.js';
 import { requireAdmin } from '../middlewares/auth.js';
@@ -22,6 +23,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/orders', adminController.listOrders.bind(adminController));
   fastify.post('/admin/orders', adminController.createOrder.bind(adminController));
   fastify.post('/admin/orders/scan', adminController.scanOrder.bind(adminController));
+  fastify.get('/admin/receipt-sessions/:sessionId', receiptController.getSessionStatus.bind(receiptController));
+  fastify.get('/admin/receipts', receiptController.listAdmin.bind(receiptController));
+  fastify.get('/admin/receipts/:id/print', receiptController.printAdmin.bind(receiptController));
+  fastify.get('/admin/receipts/:id', receiptController.getAdmin.bind(receiptController));
   fastify.get('/admin/orders/:id', adminController.getOrderById.bind(adminController));
   fastify.patch('/admin/orders/:id/status', adminController.updateOrderStatus.bind(adminController));
   fastify.patch('/admin/orders/:id', adminController.updateOrder.bind(adminController));
