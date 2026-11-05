@@ -11,6 +11,7 @@ import { addMoney, multiplyMoney } from '../utils/decimal.js';
 import { createDeliveryQrToken, DELIVERY_QR_PREFIX } from '../utils/deliveryQr.js';
 import { autoAcceptService } from './autoAcceptService.js';
 import { stockService } from './stockService.js';
+import { archivePrintRequestsForOrder } from './printRequestService.js';
 import { userRepository } from '../repositories/userRepository.js';
 import type { AdminCreateOrderInput } from '../schemas/order.schema.js';
 
@@ -430,6 +431,8 @@ export class OrderService {
       throw new Error('FAIL_CANCEL: Não foi possível cancelar o pedido.');
     }
 
+    await archivePrintRequestsForOrder(orderId);
+
     const payment = await paymentRepository.findByOrderId(orderId);
     if (payment && payment.status === 'pending') {
       await paymentRepository.updateStatus(payment.id, 'cancelled');
@@ -448,6 +451,7 @@ export class OrderService {
 
     if (status === 'cancelled' && current.status !== 'cancelled') {
       await stockService.applyOrder(current, 'in');
+      await archivePrintRequestsForOrder(orderId);
     } else if (current.status === 'cancelled' && status !== 'cancelled') {
       await stockService.applyOrder(current, 'out');
     }

@@ -10,6 +10,7 @@ import { deliveryRunService } from './deliveryRunService.js';
 import { orderService } from './orderService.js';
 import { orderRepository } from '../repositories/orderRepository.js';
 import { deliveryAssignmentRepository } from '../repositories/deliveryRepository.js';
+import { enqueueReceiptPrint } from './printRequestService.js';
 
 function buildReference(order: Order): string {
   const items = (order.items ?? [])
@@ -136,6 +137,7 @@ export async function respondReceiptAcceptance(input: {
     acceptance_user_agent: input.userAgent ?? null,
   });
   if (!accepted) throw new Error('RECEIPT_UPDATE_FAILED');
+  await enqueueReceiptPrint(accepted);
   return accepted;
 }
 
