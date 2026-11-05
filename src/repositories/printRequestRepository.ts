@@ -21,7 +21,7 @@ function mapListRow(row: Record<string, unknown>): PrintRequestListItem {
   const receipt = row.delivery_receipts as Record<string, unknown> | null | undefined;
   return {
     ...base,
-    order_number: String(order?.order_number ?? '').slice(0, 8).toUpperCase(),
+    order_number: String(order?.id ?? base.order_id).slice(0, 8).toUpperCase(),
     order_status: String(order?.status ?? ''),
     receipt_number: String(receipt?.receipt_number ?? ''),
     payer_name: String(receipt?.payer_name ?? ''),
@@ -90,14 +90,19 @@ export class PrintRequestRepository {
     if (isSupabaseConfigured()) {
       let query = supabaseAdmin
         .from('print_requests')
-        .select('*, orders(order_number, status), delivery_receipts(receipt_number, payer_name, amount)')
+        .select('*, orders(id, status), delivery_receipts(receipt_number, payer_name, amount)')
         .eq('queue_status', queueStatus)
         .order('created_at', { ascending: false });
       if (queueStatus === 'active') {
         query = query.is('printed_at', null);
       }
       const { data, error } = await query;
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.code === '42P01' || error.message.includes('print_requests')) {
+          return [];
+        }
+        throw new Error(error.message);
+      }
       return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
     }
     return memory

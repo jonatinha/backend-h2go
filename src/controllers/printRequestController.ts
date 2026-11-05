@@ -15,13 +15,25 @@ const registerSchema = z.object({
 
 export class PrintRequestController {
   async listActive(request: FastifyRequest, reply: FastifyReply) {
-    const rows = await printRequestRepository.listActive();
-    return reply.send(formatSuccess(rows));
+    try {
+      const rows = await printRequestRepository.listActive();
+      return reply.send(formatSuccess(rows));
+    } catch (e) {
+      request.log.error({ err: e }, 'print_requests list active failed');
+      const message = e instanceof Error ? e.message : 'Falha ao listar pedidos de impressão.';
+      return reply.status(503).send(formatError('PRINT_QUEUE_UNAVAILABLE', message, request.requestId));
+    }
   }
 
   async listArchived(request: FastifyRequest, reply: FastifyReply) {
-    const rows = await printRequestRepository.listArchived();
-    return reply.send(formatSuccess(rows));
+    try {
+      const rows = await printRequestRepository.listArchived();
+      return reply.send(formatSuccess(rows));
+    } catch (e) {
+      request.log.error({ err: e }, 'print_requests list archived failed');
+      const message = e instanceof Error ? e.message : 'Falha ao listar arquivados.';
+      return reply.status(503).send(formatError('PRINT_QUEUE_UNAVAILABLE', message, request.requestId));
+    }
   }
 
   async markPrinted(request: FastifyRequest, reply: FastifyReply) {
