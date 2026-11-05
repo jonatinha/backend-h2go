@@ -33,6 +33,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.post('/admin/print-requests/register', printRequestController.register.bind(printRequestController));
   fastify.post('/admin/print-requests/mark-printed', printRequestController.markPrinted.bind(printRequestController));
   fastify.post('/admin/print-requests/delete', printRequestController.remove.bind(printRequestController));
+  fastify.get('/admin/orders/:id/accepted-receipt', receiptController.getAcceptedReceiptForOrder.bind(receiptController));
   fastify.get('/admin/orders/:id', adminController.getOrderById.bind(adminController));
   fastify.patch('/admin/orders/:id/status', adminController.updateOrderStatus.bind(adminController));
   fastify.patch('/admin/orders/:id', adminController.updateOrder.bind(adminController));

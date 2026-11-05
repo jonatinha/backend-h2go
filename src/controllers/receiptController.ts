@@ -115,6 +115,32 @@ export class ReceiptController {
     const html = renderReceiptHtml(receipt);
     return reply.type('text/html; charset=utf-8').send(html);
   }
+
+  async getAcceptedReceiptForOrder(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const order = await orderRepository.findById(id);
+    if (!order) {
+      return reply.status(404).send(formatError('NOT_FOUND', 'Pedido não encontrado.', request.requestId));
+    }
+    const receipt = await receiptRepository.findLatestByOrderId(id);
+    if (!receipt || receipt.status !== 'accepted') {
+      return reply
+        .status(404)
+        .send(
+          formatError(
+            'NO_RECEIPT',
+            'Não há recibo aceito para este pedido. Conclua a entrega com aceite do cliente no app.',
+            request.requestId,
+          ),
+        );
+    }
+    return reply.send(
+      formatSuccess({
+        receipt_id: receipt.id,
+        receipt_number: receipt.receipt_number,
+      }),
+    );
+  }
 }
 
 export const receiptController = new ReceiptController();
